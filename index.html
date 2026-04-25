@@ -36,6 +36,9 @@ window.addFirestoreChannel = async (uid, ch) => {
 window.removeFirestoreChannel = async (uid, ch) => {
   try { await updateDoc(doc(db,'users',uid),{channels:arrayRemove(ch)}); } catch(e){}
 };
+window.saveChannelOrder = async (uid, channels) => {
+  try { await setDoc(doc(db,'users',uid),{channels}); } catch(e){}
+};
 </script>
 <style>
 :root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#2a2a2a;--accent:#ff0033;--accent2:#ff6b35;--text:#f0f0f0;--text2:#888;--text3:#555;}
@@ -97,6 +100,10 @@ aside{border-right:1px solid var(--border);padding:1rem 0;overflow-y:auto;positi
 .ch-del{opacity:0;background:none;border:none;color:var(--text3);font-size:0.8rem;cursor:pointer;padding:0 2px;flex-shrink:0;}
 .channel-item:hover .ch-del{opacity:1;}
 .ch-del:hover{color:var(--accent);}
+.ch-drag{opacity:0;background:none;border:none;color:var(--text3);font-size:1rem;cursor:grab;padding:0 4px;flex-shrink:0;touch-action:none;}
+.channel-item:hover .ch-drag{opacity:1;}
+.channel-item.dragging{opacity:0.4;background:var(--surface2);}
+.channel-item.drag-over{border-top:2px solid var(--accent);}
 .ch-empty{padding:0.8rem 1.2rem;font-size:0.78rem;color:var(--text3);text-align:center;}
 
 /* MAIN */
@@ -214,10 +221,10 @@ main{padding:1.8rem 2rem;min-width:0;}
   .modal-actions{width:100%;justify-content:stretch;}
   .modal-btn{flex:1;text-align:center;padding:0.7rem;}
 
-  /* 모바일 채널 목록 - x버튼 항상 표시, 한 번 탭으로 선택 */
+  /* 모바일 채널 목록 - x버튼 항상 표시, 드래그 핸들 항상 표시 */
   .mobile-drawer .ch-del{opacity:1 !important;color:var(--text3);}
+  .mobile-drawer .ch-drag{opacity:1 !important;color:var(--text3);}
   .mobile-drawer .channel-item{-webkit-tap-highlight-color:transparent;}
-  .mobile-drawer .channel-item:active{background:var(--surface);}
 
   /* 그리드 */
   .video-grid{grid-template-columns:1fr 1fr;gap:0.8rem;}
@@ -541,6 +548,10 @@ async function removeChannel(id) {
   renderChannelList(); loadVideos();
 }
 
+async function saveChannelOrder() {
+  await window.saveChannelOrder(currentUid, channels);
+}
+
 // 사이드바 렌더 (PC + 모바일 동시)
 function renderChannelList(filter='') {
   const list = filter ? channels.filter(c=>c.title.toLowerCase().includes(filter.toLowerCase())) : channels;
@@ -551,28 +562,113 @@ function renderChannelList(filter='') {
       const li = document.createElement('li');
       li.className = 'channel-item'+(ch.id===selectedChannel?' active':'');
       li.dataset.id = ch.id;
-      li.innerHTML = `<img src="${ch.thumb}" alt="" onerror="this.style.display='none'"><span class="channel-name">${ch.title}</span><button class="ch-del" title="삭제">✕</button>`;
+      li.draggable = true;
+      li.innerHTML = `<span class="ch-drag" title="드래그로 순서 변경">⠿</span><img src="${ch.thumb}" alt="" onerror="this.style.display='none'"><span class="channel-name">${ch.title}</span><button class="ch-del" title="삭제">✕</button>`;
+
+      // 삭제 버튼
       const delBtn = li.querySelector('.ch-del');
       delBtn.addEventListener('touchend', e=>{ e.stopPropagation(); e.preventDefault(); removeChannel(ch.id); });
       delBtn.addEventListener('click', e=>{ e.stopPropagation(); removeChannel(ch.id); });
+
+      // 채널 선택
       if (isMobile) {
-        let touched = false;
-        let touchStartX = 0;
-        li.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; touched = true; }, { passive: true });
+        let touched = false, touchStartX = 0, touchStartY = 0, isDragging = false;
+        li.addEventListener('touchstart', e=>{
+          if (e.target.classList.contains('ch-del') || e.target.classList.contains('ch-drag')) return;
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touched = true; isDragging = false;
+        }, { passive: true });
+        li.addEventListener('touchmove', e=>{
+          const dx = Math.abs(e.touches[0].clientX - touchStartX);
+          const dy = Math.abs(e.touches[0].clientY - touchStartY);
+          if (dx > 8 || dy > 8) isDragging = true;
+        }, { passive: true });
         li.addEventListener('touchend', e=>{
-          if (e.target.classList.contains('ch-del')) return; // ✕ 버튼이면 스킵
-          const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
-          if (dx < 10) { selectChannel(ch.id); closeDrawer(); }
-          setTimeout(()=>{ touched = false; }, 300);
+          if (e.target.classList.contains('ch-del')) return;
+          if (!isDragging) { selectChannel(ch.id); closeDrawer(); }
+          setTimeout(()=>{ touched = false; isDragging = false; }, 300);
         });
         li.addEventListener('click', e=>{
           if (e.target.classList.contains('ch-del')) return;
-          if (touched) return;
+          if (touched || isDragging) return;
           selectChannel(ch.id); closeDrawer();
         });
       } else {
-        li.addEventListener('click', ()=>selectChannel(ch.id));
+        li.addEventListener('click', e=>{
+          if (e.target.classList.contains('ch-del') || e.target.classList.contains('ch-drag')) return;
+          selectChannel(ch.id);
+        });
       }
+
+      // ── 드래그 앤 드롭 (PC) ──
+      li.addEventListener('dragstart', e=>{
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', ch.id);
+        setTimeout(()=>li.classList.add('dragging'), 0);
+      });
+      li.addEventListener('dragend', ()=>{ li.classList.remove('dragging'); ul.querySelectorAll('.channel-item').forEach(el=>el.classList.remove('drag-over')); });
+      li.addEventListener('dragover', e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; ul.querySelectorAll('.channel-item').forEach(el=>el.classList.remove('drag-over')); li.classList.add('drag-over'); });
+      li.addEventListener('dragleave', ()=>li.classList.remove('drag-over'));
+      li.addEventListener('drop', e=>{
+        e.preventDefault();
+        const fromId = e.dataTransfer.getData('text/plain');
+        const toId = ch.id;
+        if (fromId === toId) return;
+        const fromIdx = channels.findIndex(c=>c.id===fromId);
+        const toIdx = channels.findIndex(c=>c.id===toId);
+        if (fromIdx < 0 || toIdx < 0) return;
+        const [moved] = channels.splice(fromIdx, 1);
+        channels.splice(toIdx, 0, moved);
+        saveChannelOrder();
+        renderChannelList(document.getElementById(isMobile?'chFilterInputM':'chFilterInput')?.value||'');
+      });
+
+      // ── 드래그 앤 드롭 (모바일 터치) ──
+      const dragHandle = li.querySelector('.ch-drag');
+      let longPressTimer = null, dragClone = null, dragFromId = null;
+      dragHandle.addEventListener('touchstart', e=>{
+        e.stopPropagation();
+        dragFromId = ch.id;
+        longPressTimer = setTimeout(()=>{
+          // 드래그 클론 생성
+          dragClone = li.cloneNode(true);
+          dragClone.style.cssText = `position:fixed;left:${li.getBoundingClientRect().left}px;top:${li.getBoundingClientRect().top}px;width:${li.offsetWidth}px;opacity:0.85;z-index:9999;pointer-events:none;background:var(--surface2);border-radius:8px;`;
+          document.body.appendChild(dragClone);
+          li.classList.add('dragging');
+        }, 150);
+      }, { passive: true });
+      dragHandle.addEventListener('touchmove', e=>{
+        e.preventDefault();
+        if (!dragClone) return;
+        const touch = e.touches[0];
+        dragClone.style.top = (touch.clientY - 20) + 'px';
+        // 드롭 대상 찾기
+        dragClone.style.display = 'none';
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        dragClone.style.display = '';
+        const targetLi = el?.closest('.channel-item');
+        ul.querySelectorAll('.channel-item').forEach(el=>el.classList.remove('drag-over'));
+        if (targetLi && targetLi !== li) targetLi.classList.add('drag-over');
+      }, { passive: false });
+      dragHandle.addEventListener('touchend', e=>{
+        clearTimeout(longPressTimer);
+        if (!dragClone) return;
+        document.body.removeChild(dragClone); dragClone = null;
+        li.classList.remove('dragging');
+        const overEl = ul.querySelector('.channel-item.drag-over');
+        ul.querySelectorAll('.channel-item').forEach(el=>el.classList.remove('drag-over'));
+        if (!overEl || overEl === li) return;
+        const toId = overEl.dataset.id;
+        const fromIdx = channels.findIndex(c=>c.id===dragFromId);
+        const toIdx = channels.findIndex(c=>c.id===toId);
+        if (fromIdx < 0 || toIdx < 0) return;
+        const [moved] = channels.splice(fromIdx, 1);
+        channels.splice(toIdx, 0, moved);
+        saveChannelOrder();
+        renderChannelList(document.getElementById(isMobile?'chFilterInputM':'chFilterInput')?.value||'');
+      });
+
       ul.appendChild(li);
     });
   };
