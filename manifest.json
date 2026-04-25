@@ -2,7 +2,7 @@
   "name": "YouTube Auto Feed",
   "short_name": "YT Feed",
   "description": "내가 선택한 채널의 최신 영상만 모아보는 개인 유튜브 피드",
-  "start_url": "/youtube-feed.html",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#ff0033",
