@@ -207,12 +207,17 @@ main{padding:1.8rem 2rem;min-width:0;}
   .mobile-search-input:focus{border-color:var(--accent);}
   .mobile-search-input::placeholder{color:var(--text3);}
 
-  /* 모달 모바일 */
-  .modal-overlay{padding:0;align-items:flex-end;}
-  .modal-box{border-radius:20px 20px 0 0;max-width:100%;}
+  /* 모달 모바일 - 중앙 표시 */
+  .modal-overlay{padding:1rem;align-items:center;}
+  .modal-box{border-radius:14px;max-width:100%;}
   .modal-info{flex-direction:column;gap:0.8rem;}
   .modal-actions{width:100%;justify-content:stretch;}
   .modal-btn{flex:1;text-align:center;padding:0.7rem;}
+
+  /* 모바일 채널 목록 - x버튼 항상 표시, 한 번 탭으로 선택 */
+  .mobile-drawer .ch-del{opacity:1 !important;color:var(--text3);}
+  .mobile-drawer .channel-item{-webkit-tap-highlight-color:transparent;}
+  .mobile-drawer .channel-item:active{background:var(--surface);}
 
   /* 그리드 */
   .video-grid{grid-template-columns:1fr 1fr;gap:0.8rem;}
@@ -286,7 +291,7 @@ main{padding:1.8rem 2rem;min-width:0;}
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal-box">
     <div class="modal-player">
-      <iframe id="modalIframe" src="" allowfullscreen allow="autoplay; encrypted-media; gyroscope; accelerometer; picture-in-picture; fullscreen; web-share"></iframe>
+      <iframe id="modalIframe" src="" allowfullscreen allow="autoplay; encrypted-media; gyroscope; accelerometer; picture-in-picture; fullscreen; web-share" playsinline webkit-playsinline></iframe>
     </div>
     <div class="modal-info">
       <div class="modal-info-left">
@@ -547,8 +552,19 @@ function renderChannelList(filter='') {
       li.className = 'channel-item'+(ch.id===selectedChannel?' active':'');
       li.dataset.id = ch.id;
       li.innerHTML = `<img src="${ch.thumb}" alt="" onerror="this.style.display='none'"><span class="channel-name">${ch.title}</span><button class="ch-del" title="삭제">✕</button>`;
-      li.querySelector('.ch-del').addEventListener('click', e=>{ e.stopPropagation(); removeChannel(ch.id); });
-      li.addEventListener('click', ()=>{ selectChannel(ch.id); if(isMobile) closeDrawer(); });
+      const delBtn = li.querySelector('.ch-del');
+      delBtn.addEventListener('click', e=>{ e.stopPropagation(); removeChannel(ch.id); });
+      if (isMobile) {
+        // 모바일: 터치 시작 위치 기록 후 짧은 탭이면 선택
+        let touchStartX = 0;
+        li.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; }, { passive: true });
+        li.addEventListener('touchend', e=>{
+          const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+          if (dx < 10) { selectChannel(ch.id); closeDrawer(); }
+        });
+      } else {
+        li.addEventListener('click', ()=>selectChannel(ch.id));
+      }
       ul.appendChild(li);
     });
   };
@@ -670,7 +686,12 @@ function openVideo(id){
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.getElementById('modalIframe').src='';document.body.style.overflow='';currentVideoId=null;isVideoPlaying=false;}
 function handleOverlayClick(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
-function openInYoutube(){if(currentVideoId)window.open(`https://www.youtube.com/watch?v=${currentVideoId}`,'_blank');}
+function openInYoutube(){
+  if(!currentVideoId) return;
+  const url = `https://www.youtube.com/watch?v=${currentVideoId}`;
+  closeModal();
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 function showSkeletons(){document.getElementById('videoCount').textContent='';document.getElementById('videoGrid').innerHTML=Array(8).fill(`<div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line short"></div><div class="skel-line"></div><div class="skel-line"></div><div class="skel-line short"></div></div></div>`).join('');}
