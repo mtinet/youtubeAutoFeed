@@ -173,7 +173,112 @@ window.removeFirestoreChannel = async (uid, ch) => {
   ::-webkit-scrollbar{width:5px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-  @media(max-width:700px){.layout{grid-template-columns:1fr;}aside{display:none;}header{padding:0 1rem;}main{padding:1.2rem 1rem;}}
+
+  /* ── PC 레이아웃 ── */
+  @media(min-width:701px){
+    .mobile-only { display:none !important; }
+  }
+
+  /* ── 모바일 레이아웃 ── */
+  @media(max-width:700px){
+    .pc-only { display:none !important; }
+    header { padding:0 1rem; height:56px; }
+    .logo { font-size:1.3rem; }
+    .layout { grid-template-columns:1fr; }
+    aside { display:none; }
+    main { padding:1rem; padding-bottom:80px; }
+
+    /* 하단 탭바 */
+    .mobile-tabbar {
+      position:fixed; bottom:0; left:0; right:0; z-index:200;
+      background:rgba(14,14,14,0.97); border-top:1px solid var(--border);
+      display:flex; height:60px;
+      backdrop-filter:blur(10px);
+    }
+    .tab-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; gap:3px; border:none; background:none;
+      color:var(--text3); font-family:inherit; font-size:0.6rem;
+      cursor:pointer; transition:color 0.15s; padding:0;
+    }
+    .tab-btn .tab-icon { font-size:1.3rem; line-height:1; }
+    .tab-btn.active { color:var(--accent); }
+
+    /* 모바일 드로어 (채널 목록) */
+    .mobile-drawer {
+      position:fixed; inset:0; z-index:300; display:none;
+    }
+    .mobile-drawer.open { display:block; }
+    .drawer-overlay {
+      position:absolute; inset:0; background:rgba(0,0,0,0.7);
+    }
+    .drawer-panel {
+      position:absolute; left:0; top:0; bottom:0; width:80%; max-width:320px;
+      background:var(--surface); overflow-y:auto;
+      transform:translateX(-100%); transition:transform 0.28s ease;
+      padding-bottom:20px;
+    }
+    .mobile-drawer.open .drawer-panel { transform:translateX(0); }
+    .drawer-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1rem 1.2rem 0.6rem; border-bottom:1px solid var(--border);
+    }
+    .drawer-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:1px; color:var(--text); }
+    .drawer-close {
+      background:none; border:none; color:var(--text3); font-size:1.4rem;
+      cursor:pointer; padding:4px;
+    }
+
+    /* 모바일 채널 추가 바텀시트 */
+    .mobile-add-sheet {
+      position:fixed; inset:0; z-index:300; display:none;
+    }
+    .mobile-add-sheet.open { display:block; }
+    .sheet-overlay {
+      position:absolute; inset:0; background:rgba(0,0,0,0.7);
+    }
+    .sheet-panel {
+      position:absolute; left:0; right:0; bottom:0;
+      background:var(--surface); border-radius:16px 16px 0 0;
+      padding:1.2rem; max-height:85vh; overflow-y:auto;
+      transform:translateY(100%); transition:transform 0.28s ease;
+    }
+    .mobile-add-sheet.open .sheet-panel { transform:translateY(0); }
+    .sheet-handle {
+      width:36px; height:4px; background:var(--border); border-radius:2px;
+      margin:0 auto 1rem;
+    }
+    .sheet-title { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:1rem; }
+
+    /* 모바일 검색 바텀시트 */
+    .mobile-search-sheet {
+      position:fixed; inset:0; z-index:300; display:none;
+    }
+    .mobile-search-sheet.open { display:block; }
+    .mobile-search-sheet .sheet-panel { padding:1.2rem; }
+    .mobile-search-input {
+      width:100%; background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; padding:0.7rem 1rem; color:var(--text);
+      font-family:inherit; font-size:1rem; outline:none;
+    }
+    .mobile-search-input:focus { border-color:var(--accent); }
+
+    /* 모달 모바일 최적화 */
+    .modal-overlay { padding:0; align-items:flex-end; }
+    .modal-box { border-radius:16px 16px 0 0; max-width:100%; }
+    .modal-info { flex-direction:column; gap:0.8rem; }
+    .modal-actions { width:100%; justify-content:stretch; }
+    .modal-btn { flex:1; text-align:center; padding:0.6rem; }
+
+    /* 비디오 그리드 모바일 */
+    .video-grid { grid-template-columns:1fr 1fr; gap:0.8rem; }
+    .card-title { font-size:0.78rem; }
+    .card-meta { font-size:0.65rem; gap:0.4rem; }
+  }
+
+  @media(max-width:400px){
+    .video-grid { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -198,7 +303,8 @@ window.removeFirestoreChannel = async (uid, ch) => {
 </header>
 
 <div class="layout">
-  <aside>
+  <!-- PC 사이드바 -->
+  <aside class="pc-only">
     <div class="sidebar-title">내 채널</div>
     <div class="ch-filter-wrap">
       <input type="text" id="chFilterInput" placeholder="채널 필터...">
@@ -214,6 +320,69 @@ window.removeFirestoreChannel = async (uid, ch) => {
     <div class="ch-all active" id="chAll" onclick="selectChannel('all')">📺 전체 채널</div>
     <ul id="channelList"></ul>
   </aside>
+
+  <!-- 모바일 드로어 -->
+  <div class="mobile-drawer mobile-only" id="mobileDrawer">
+    <div class="drawer-overlay" onclick="closeDrawer()"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <span class="drawer-title">내 채널</span>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+      </div>
+      <div style="padding:0.6rem 1rem 0">
+        <div class="ch-filter-wrap" style="padding:0 0 0.6rem">
+          <input type="text" id="chFilterInputM" placeholder="채널 필터...">
+          <span class="ch-filter-icon">🔍</span>
+        </div>
+      </div>
+      <div class="ch-all active" id="chAllM" onclick="selectChannel('all');closeDrawer()">📺 전체 채널</div>
+      <ul id="channelListM"></ul>
+    </div>
+  </div>
+
+  <!-- 모바일 채널 추가 바텀시트 -->
+  <div class="mobile-add-sheet mobile-only" id="mobileAddSheet">
+    <div class="sheet-overlay" onclick="closeAddSheet()"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">채널 추가</div>
+      <div class="ch-add-row" style="margin-bottom:0.6rem">
+        <input type="text" id="chAddInputM" placeholder="채널명 검색" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.9rem;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;min-width:0;">
+        <button onclick="searchChannelM()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:700;padding:0.6rem 1rem;cursor:pointer;white-space:nowrap;flex-shrink:0;">검색</button>
+      </div>
+      <div id="chAddResultM"></div>
+    </div>
+  </div>
+
+  <!-- 모바일 검색 바텀시트 -->
+  <div class="mobile-search-sheet mobile-only" id="mobileSearchSheet">
+    <div class="sheet-overlay" onclick="closeSearchSheet()"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">검색 / 정렬</div>
+      <input type="text" id="searchInputM" class="mobile-search-input" placeholder="제목/키워드 검색...">
+      <select id="sortSelectM" style="width:100%;margin-top:0.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;padding:0.6rem;outline:none;">
+        <option value="date">최신순</option>
+        <option value="views">조회수순</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 모바일 하단 탭바 -->
+  <div class="mobile-tabbar mobile-only">
+    <button class="tab-btn" onclick="openDrawer()">
+      <span class="tab-icon">📺</span><span>채널</span>
+    </button>
+    <button class="tab-btn" onclick="openAddSheet()">
+      <span class="tab-icon">➕</span><span>추가</span>
+    </button>
+    <button class="tab-btn" onclick="openSearchSheet()">
+      <span class="tab-icon">🔍</span><span>검색</span>
+    </button>
+    <button class="tab-btn" onclick="refreshFeed()">
+      <span class="tab-icon">🔄</span><span>새로고침</span>
+    </button>
+  </div>
 
   <main>
     <div class="state-screen" id="welcomeScreen">
@@ -356,9 +525,15 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   allVideos = []; channels = [];
   document.getElementById('loginBtn').style.display = 'block';
   document.getElementById('welcomeScreen').style.display = 'flex';
-  ['profileArea','searchWrap','sortSelect','chAddSection','feedArea'].forEach(id => document.getElementById(id).style.display='none');
+  ['profileArea','searchWrap','sortSelect','chAddSection','feedArea'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.style.display='none';
+  });
   document.getElementById('channelList').innerHTML = '';
+  const ulM = document.getElementById('channelListM');
+  if (ulM) ulM.innerHTML = '';
   document.getElementById('chAll').className = 'ch-all active';
+  const chAllM = document.getElementById('chAllM');
+  if (chAllM) chAllM.className = 'ch-all active';
 });
 
 function showLoggedIn() {
@@ -366,7 +541,10 @@ function showLoggedIn() {
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('feedArea').style.display = 'block';
   document.getElementById('profileArea').style.display = 'flex';
-  ['searchWrap','sortSelect','chAddSection'].forEach(id => document.getElementById(id).style.display='block');
+  // PC 전용 (모바일에선 숨겨짐)
+  ['searchWrap','sortSelect','chAddSection'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.style.display = 'block';
+  });
   showSkeletons();
 }
 
@@ -437,27 +615,96 @@ async function removeChannel(id) {
   loadVideos();
 }
 
-// ── 사이드바 렌더 ──
+// ── 사이드바 렌더 (PC + 모바일 동시) ──
 function renderChannelList(filter = '') {
-  const ul = document.getElementById('channelList');
-  ul.innerHTML = '';
   const list = filter ? channels.filter(c => c.title.toLowerCase().includes(filter.toLowerCase())) : channels;
-  if (!list.length) { ul.innerHTML = '<li class="ch-empty">채널을 추가해보세요!</li>'; return; }
-  list.forEach(ch => {
-    const li = document.createElement('li');
-    li.className = 'channel-item' + (ch.id === selectedChannel ? ' active' : '');
-    li.dataset.id = ch.id;
-    li.innerHTML = `
-      <img src="${ch.thumb}" alt="" onerror="this.style.display='none'">
-      <span class="channel-name">${ch.title}</span>
-      <button class="ch-del" title="삭제">✕</button>`;
-    li.querySelector('.ch-del').addEventListener('click', e => { e.stopPropagation(); removeChannel(ch.id); });
-    li.addEventListener('click', () => selectChannel(ch.id));
-    ul.appendChild(li);
-  });
+  const emptyHtml = '<li class="ch-empty">채널을 추가해보세요!</li>';
+
+  const makeItems = (ul, isMobile) => {
+    ul.innerHTML = '';
+    if (!list.length) { ul.innerHTML = emptyHtml; return; }
+    list.forEach(ch => {
+      const li = document.createElement('li');
+      li.className = 'channel-item' + (ch.id === selectedChannel ? ' active' : '');
+      li.dataset.id = ch.id;
+      li.innerHTML = `
+        <img src="${ch.thumb}" alt="" onerror="this.style.display='none'">
+        <span class="channel-name">${ch.title}</span>
+        <button class="ch-del" title="삭제">✕</button>`;
+      li.querySelector('.ch-del').addEventListener('click', e => { e.stopPropagation(); removeChannel(ch.id); });
+      li.addEventListener('click', () => {
+        selectChannel(ch.id);
+        if (isMobile) closeDrawer();
+      });
+      ul.appendChild(li);
+    });
+  };
+
+  makeItems(document.getElementById('channelList'), false);
+  const ulM = document.getElementById('channelListM');
+  if (ulM) makeItems(ulM, true);
 }
 
 document.getElementById('chFilterInput').addEventListener('input', e => { renderChannelList(e.target.value.trim()); });
+document.getElementById('chFilterInputM')?.addEventListener('input', e => { renderChannelList(e.target.value.trim()); });
+
+// ── 모바일 드로어 ──
+function openDrawer() { document.getElementById('mobileDrawer').classList.add('open'); }
+function closeDrawer() { document.getElementById('mobileDrawer').classList.remove('open'); }
+
+// ── 모바일 채널 추가 바텀시트 ──
+function openAddSheet() { document.getElementById('mobileAddSheet').classList.add('open'); }
+function closeAddSheet() {
+  document.getElementById('mobileAddSheet').classList.remove('open');
+  document.getElementById('chAddResultM').innerHTML = '';
+  document.getElementById('chAddInputM').value = '';
+}
+
+async function searchChannelM() {
+  const q = document.getElementById('chAddInputM').value.trim();
+  if (!q) return;
+  const btn = document.querySelector('#mobileAddSheet button');
+  btn.disabled = true; btn.textContent = '검색 중...';
+  const result = document.getElementById('chAddResultM');
+  result.innerHTML = '<div class="ch-add-msg">검색 중...</div>';
+  try {
+    const data = await gFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(q)}&maxResults=5`);
+    if (!data.items?.length) { result.innerHTML = '<div class="ch-add-msg">결과 없음</div>'; return; }
+    result.innerHTML = '';
+    data.items.forEach(item => {
+      const id = item.snippet.channelId;
+      const title = item.snippet.title;
+      const thumb = item.snippet.thumbnails?.default?.url || '';
+      const already = !!channels.find(c => c.id === id);
+      const div = document.createElement('div');
+      div.className = 'ch-result-item';
+      div.innerHTML = `
+        <img src="${thumb}" alt="">
+        <div class="ch-result-info">
+          <div class="ch-result-name">${title}</div>
+          <div class="ch-result-sub">${already ? '이미 추가됨' : ''}</div>
+        </div>
+        <span class="ch-result-plus">${already ? '✓' : '+'}</span>`;
+      if (!already) div.addEventListener('click', () => { addChannel(id, title, thumb); closeAddSheet(); });
+      result.appendChild(div);
+    });
+  } catch(e) {
+    result.innerHTML = '<div class="ch-add-msg">검색 실패</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '검색';
+  }
+}
+document.getElementById('chAddInputM')?.addEventListener('keydown', e => { if(e.key==='Enter') searchChannelM(); });
+
+// ── 모바일 검색 바텀시트 ──
+function openSearchSheet() { document.getElementById('mobileSearchSheet').classList.add('open'); }
+function closeSearchSheet() { document.getElementById('mobileSearchSheet').classList.remove('open'); }
+
+document.getElementById('searchInputM')?.addEventListener('input', e => { searchQuery = e.target.value.trim(); renderFeed(); });
+document.getElementById('sortSelectM')?.addEventListener('change', e => { sortMode = e.target.value; renderFeed(); });
+
+// ── 새로고침 ──
+function refreshFeed() { loadVideos(); }
 
 // ── 영상 로드 ──
 async function loadVideos() {
