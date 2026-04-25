@@ -268,7 +268,7 @@ const CLIENT_ID = '866899369927-9e6lmj6l2v09mpgpj9uq5oa0t8r2fca3.apps.googleuser
 const SCOPES = 'https://www.googleapis.com/auth/youtube.readonly openid profile email';
 
 let accessToken = null;
-let currentUid = null; // Firebase 사용자 구분용 (Google sub)
+let currentUid = null;
 let allVideos = [];
 let channels = [];
 let selectedChannel = 'all';
@@ -276,9 +276,30 @@ let dateFilter = 'all';
 let searchQuery = '';
 let sortMode = 'date';
 let currentVideoId = null;
-let nextPageTokenMap = {}; // 채널별 다음 페이지 토큰
-let displayedCount = 12;   // 현재 화면에 표시된 영상 수
-const PAGE_SIZE = 12;      // 한 번에 표시할 영상 수
+let nextPageTokenMap = {};
+let displayedCount = 12;
+const PAGE_SIZE = 12;
+let tokenClient = null;
+let lastActivityAt = Date.now();
+let isVideoPlaying = false; // 영상 재생 중 여부
+const IDLE_LIMIT = 30 * 60 * 1000; // 30분 이상 미사용 시 갱신 안 함
+
+// ── 사용자 활동 감지 (PC + 모바일) ──
+['click','keydown','scroll','mousemove','touchstart','touchmove'].forEach(ev => {
+  document.addEventListener(ev, () => { lastActivityAt = Date.now(); }, { passive: true });
+});
+
+// ── 토큰 자동 갱신 (50분마다, 사용 중일 때만) ──
+function startTokenRefresh() {
+  setInterval(() => {
+    if (!tokenClient) return;
+    const idle = Date.now() - lastActivityAt;
+    // 영상 재생 중이거나 30분 이내 활동이 있으면 갱신
+    if (isVideoPlaying || idle <= IDLE_LIMIT) {
+      tokenClient.requestAccessToken({ prompt: '' });
+    }
+  }, 50 * 60 * 1000);
+}
 
 // ── 초기화 ──
 window.addEventListener('load', async () => {
@@ -286,7 +307,6 @@ window.addEventListener('load', async () => {
   const savedUid = sessionStorage.getItem('yt_uid');
   if (savedToken && savedUid) {
     accessToken = savedToken;
-    // 토큰 유효성 먼저 확인
     try {
       const profile = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
       currentUid = savedUid;
@@ -294,7 +314,6 @@ window.addEventListener('load', async () => {
       showLoggedIn();
       loadChannelsFromFirestore();
     } catch(e) {
-      // 토큰 만료 → 조용히 초기화
       sessionStorage.clear();
     }
   }
@@ -303,7 +322,7 @@ window.addEventListener('load', async () => {
 // ── 로그인 ──
 document.getElementById('loginBtn').addEventListener('click', () => {
   if (CLIENT_ID === 'YOUR_CLIENT_ID') { alert('Client ID를 먼저 입력해 주세요!'); return; }
-  google.accounts.oauth2.initTokenClient({
+  tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES,
     callback: async (resp) => {
       if (resp.error) { console.error(resp); return; }
@@ -316,6 +335,7 @@ document.getElementById('loginBtn').addEventListener('click', () => {
         if (profile.picture) document.getElementById('profileImg').src = profile.picture;
         showLoggedIn();
         loadChannelsFromFirestore();
+        startTokenRefresh(); // 로그인 성공 후 자동 갱신 시작
       } catch(e) {
         console.error('프로필 로드 실패', e);
         sessionStorage.clear();
@@ -323,7 +343,8 @@ document.getElementById('loginBtn').addEventListener('click', () => {
         location.reload();
       }
     }
-  }).requestAccessToken();
+  });
+  tokenClient.requestAccessToken();
 });
 
 // ── 로그아웃 ──
@@ -590,6 +611,7 @@ document.getElementById('sortSelect').addEventListener('change', e => { sortMode
 function openVideo(id) {
   const v = allVideos.find(v => v.id === id); if (!v) return;
   currentVideoId = id;
+  isVideoPlaying = true;
   document.getElementById('modalIframe').src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
   document.getElementById('modalTitle').textContent = v.title;
   document.getElementById('modalChThumb').src = v.channelThumb;
@@ -602,7 +624,9 @@ function openVideo(id) {
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   document.getElementById('modalIframe').src = '';
-  document.body.style.overflow = ''; currentVideoId = null;
+  document.body.style.overflow = '';
+  currentVideoId = null;
+  isVideoPlaying = false;
 }
 function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
 function openInYoutube() { if(currentVideoId) window.open(`https://www.youtube.com/watch?v=${currentVideoId}`,'_blank'); }
@@ -620,6 +644,21 @@ function showSkeletons() {
 async function gFetch(url) {
   const r = await fetch(url, { headers:{ Authorization:`Bearer ${accessToken}` } });
   if (r.status === 401) {
+    // 토큰 만료 → 자동 갱신 시도
+    if (tokenClient) {
+      return new Promise((resolve, reject) => {
+        tokenClient.callback = async (resp) => {
+          if (resp.error) { reject(new Error('401')); return; }
+          accessToken = resp.access_token;
+          sessionStorage.setItem('yt_token', accessToken);
+          // 갱신된 토큰으로 재시도
+          const r2 = await fetch(url, { headers:{ Authorization:`Bearer ${accessToken}` } });
+          if (!r2.ok) { reject(new Error(r2.status)); return; }
+          resolve(r2.json());
+        };
+        tokenClient.requestAccessToken({ prompt: '' }); // 팝업 없이 갱신
+      });
+    }
     sessionStorage.clear();
     throw new Error('401');
   }
