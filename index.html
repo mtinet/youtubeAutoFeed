@@ -2,283 +2,224 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ff0033">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YT Feed">
+<link rel="manifest" href="manifest.json">
 <title>YouTube Auto Feed</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-// ★ Firebase 설정 ★
 const firebaseConfig = {
   apiKey: "AIzaSyAdSRl1XvsiyffivTQGic6pAHhe5CpztZ4",
   authDomain: "autofeed-c18c9.firebaseapp.com",
   projectId: "autofeed-c18c9",
   storageBucket: "autofeed-c18c9.firebasestorage.app",
   messagingSenderId: "1024270170644",
-  appId: "1:1024270170644:web:8203b6443eb46b8d794501",
-  measurementId: "G-9XS7M5ZFPP"
+  appId: "1:1024270170644:web:8203b6443eb46b8d794501"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ── Firestore: 채널 목록 불러오기 ──
 window.loadFirestoreChannels = async (uid) => {
-  try {
-    const ref = doc(db, 'users', uid);
-    const snap = await getDoc(ref);
-    return snap.exists() ? (snap.data().channels || []) : [];
-  } catch(e) { console.error('Firestore 로드 오류', e); return []; }
+  try { const s = await getDoc(doc(db,'users',uid)); return s.exists()?(s.data().channels||[]):[];} catch(e){return[];}
 };
-
-// ── Firestore: 채널 추가 ──
 window.addFirestoreChannel = async (uid, ch) => {
-  try {
-    const ref = doc(db, 'users', uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, { channels: [ch] });
-    } else {
-      await updateDoc(ref, { channels: arrayUnion(ch) });
-    }
-  } catch(e) { console.error('Firestore 추가 오류', e); }
+  try { const r=doc(db,'users',uid); const s=await getDoc(r); s.exists()?await updateDoc(r,{channels:arrayUnion(ch)}):await setDoc(r,{channels:[ch]}); } catch(e){}
 };
-
-// ── Firestore: 채널 삭제 ──
 window.removeFirestoreChannel = async (uid, ch) => {
-  try {
-    const ref = doc(db, 'users', uid);
-    await updateDoc(ref, { channels: arrayRemove(ch) });
-  } catch(e) { console.error('Firestore 삭제 오류', e); }
+  try { await updateDoc(doc(db,'users',uid),{channels:arrayRemove(ch)}); } catch(e){}
 };
 </script>
 <style>
-  :root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#2a2a2a;--accent:#ff0033;--accent2:#ff6b35;--text:#f0f0f0;--text2:#888;--text3:#555;}
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#2a2a2a;--accent:#ff0033;--accent2:#ff6b35;--text:#f0f0f0;--text2:#888;--text3:#555;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;padding-top:env(safe-area-inset-top);}
 
-  header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;}
-  .logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;flex-shrink:0;}
-  .header-right{display:flex;align-items:center;gap:1rem;flex:1;justify-content:flex-end;}
-  .search-wrap{position:relative;flex:1;max-width:360px;}
-  .search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.5rem 2.4rem 0.5rem 0.9rem;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;transition:border-color 0.2s;}
-  .search-wrap input:focus{border-color:var(--accent);}
-  .search-wrap input::placeholder{color:var(--text3);}
-  .search-icon{position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
-  select.sort-select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.82rem;padding:0.5rem 0.8rem;outline:none;cursor:pointer;flex-shrink:0;}
-  #loginBtn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:0.5rem 1.2rem;font-family:inherit;font-size:0.85rem;font-weight:500;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;flex-shrink:0;}
-  #loginBtn:hover{opacity:0.85;}
-  #profileArea{display:none;align-items:center;gap:0.6rem;flex-shrink:0;}
-  #profileArea img{width:34px;height:34px;border-radius:50%;border:2px solid var(--accent);}
-  #logoutBtn{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:0.35rem 0.8rem;font-family:inherit;font-size:0.78rem;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
-  #logoutBtn:hover{border-color:var(--accent);color:var(--accent);}
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;flex-shrink:0;}
+.header-right{display:flex;align-items:center;gap:0.8rem;flex:1;justify-content:flex-end;}
+.search-wrap{position:relative;flex:1;max-width:360px;}
+.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.5rem 2.4rem 0.5rem 0.9rem;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;transition:border-color 0.2s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+select.sort-select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.82rem;padding:0.5rem 0.8rem;outline:none;cursor:pointer;flex-shrink:0;}
+#loginBtn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:0.5rem 1.2rem;font-family:inherit;font-size:0.85rem;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+#profileArea{display:none;align-items:center;gap:0.6rem;flex-shrink:0;}
+#profileArea img{width:34px;height:34px;border-radius:50%;border:2px solid var(--accent);}
+#logoutBtn{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:0.35rem 0.8rem;font-family:inherit;font-size:0.78rem;cursor:pointer;}
+#logoutBtn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 64px);}
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 64px);}
 
-  aside{border-right:1px solid var(--border);padding:1rem 0;overflow-y:auto;position:sticky;top:64px;height:calc(100vh - 64px);}
-  .sidebar-title{font-size:0.7rem;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:0 1.2rem 0.6rem;}
+/* SIDEBAR */
+aside{border-right:1px solid var(--border);padding:1rem 0;overflow-y:auto;position:sticky;top:64px;height:calc(100vh - 64px);}
+.sidebar-title{font-size:0.7rem;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:0 1.2rem 0.6rem;}
+.ch-filter-wrap{position:relative;padding:0 1rem 0.6rem;}
+.ch-filter-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.4rem 2rem 0.4rem 0.7rem;color:var(--text);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;}
+.ch-filter-wrap input:focus{border-color:var(--accent);}
+.ch-filter-wrap input::placeholder{color:var(--text3);}
+.ch-filter-icon{position:absolute;right:1.6rem;top:50%;transform:translateY(-50%);color:var(--text3);font-size:0.8rem;pointer-events:none;}
+.ch-add-section{padding:0 1rem 0.8rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem;}
+.ch-add-row{display:flex;gap:0.4rem;margin-bottom:0.4rem;}
+.ch-add-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.4rem 0.7rem;color:var(--text);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;min-width:0;}
+.ch-add-row input:focus{border-color:var(--accent);}
+.ch-add-row input::placeholder{color:var(--text3);}
+#chAddBtn{background:var(--accent);border:none;border-radius:6px;color:#fff;font-family:inherit;font-size:0.78rem;font-weight:700;padding:0.4rem 0.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+#chAddBtn:disabled{opacity:0.4;}
+.ch-result-item{display:flex;align-items:center;gap:0.6rem;padding:0.45rem 0.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:0.3rem;cursor:pointer;transition:border-color 0.15s;}
+.ch-result-item:hover{border-color:var(--accent);}
+.ch-result-item img{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
+.ch-result-info{flex:1;min-width:0;}
+.ch-result-name{font-size:0.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-result-sub{font-size:0.68rem;color:var(--text3);}
+.ch-result-plus{font-size:1rem;color:var(--accent);font-weight:700;flex-shrink:0;}
+.ch-add-msg{font-size:0.73rem;color:var(--text3);text-align:center;padding:0.3rem 0;}
+#channelList,#channelListM{list-style:none;}
+.ch-all{font-size:0.82rem;font-weight:700;color:var(--text2);padding:0.55rem 1.2rem;cursor:pointer;border-left:3px solid transparent;transition:background 0.15s;display:flex;align-items:center;gap:0.5rem;}
+.ch-all:hover{background:var(--surface);}
+.ch-all.active{border-left-color:var(--accent);color:var(--text);background:var(--surface);}
+.channel-item{display:flex;align-items:center;gap:0.7rem;padding:0.5rem 1.2rem;cursor:pointer;transition:background 0.15s;border-left:3px solid transparent;}
+.channel-item:hover{background:var(--surface);}
+.channel-item.active{border-left-color:var(--accent);background:var(--surface);}
+.channel-item img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.channel-name{font-size:0.82rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.channel-item.active .channel-name{color:var(--text);}
+.ch-del{opacity:0;background:none;border:none;color:var(--text3);font-size:0.8rem;cursor:pointer;padding:0 2px;flex-shrink:0;}
+.channel-item:hover .ch-del{opacity:1;}
+.ch-del:hover{color:var(--accent);}
+.ch-empty{padding:0.8rem 1.2rem;font-size:0.78rem;color:var(--text3);text-align:center;}
 
-  .ch-filter-wrap{position:relative;padding:0 1rem 0.6rem;}
-  .ch-filter-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.4rem 2rem 0.4rem 0.7rem;color:var(--text);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;}
-  .ch-filter-wrap input:focus{border-color:var(--accent);}
-  .ch-filter-wrap input::placeholder{color:var(--text3);}
-  .ch-filter-icon{position:absolute;right:1.6rem;top:50%;transform:translateY(-50%);color:var(--text3);font-size:0.8rem;pointer-events:none;}
+/* MAIN */
+main{padding:1.8rem 2rem;min-width:0;}
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+.feed-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1.5px;}
+.video-count{font-size:0.78rem;color:var(--text3);}
+.date-tabs{display:flex;gap:0.4rem;margin-bottom:1.4rem;flex-wrap:wrap;}
+.date-tab{background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-family:inherit;font-size:0.78rem;padding:0.35rem 0.9rem;cursor:pointer;transition:all 0.15s;}
+.date-tab:hover{border-color:var(--accent);color:var(--accent);}
+.date-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
 
-  .ch-add-section{padding:0 1rem 0.8rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem;}
-  .ch-add-row{display:flex;gap:0.4rem;margin-bottom:0.4rem;}
-  .ch-add-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.4rem 0.7rem;color:var(--text);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;min-width:0;}
-  .ch-add-row input:focus{border-color:var(--accent);}
-  .ch-add-row input::placeholder{color:var(--text3);}
-  #chAddBtn{background:var(--accent);border:none;border-radius:6px;color:#fff;font-family:inherit;font-size:0.78rem;font-weight:700;padding:0.4rem 0.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:opacity 0.2s;}
-  #chAddBtn:hover{opacity:0.85;}
-  #chAddBtn:disabled{opacity:0.4;cursor:default;}
-  .ch-result-item{display:flex;align-items:center;gap:0.6rem;padding:0.45rem 0.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:0.3rem;cursor:pointer;transition:border-color 0.15s;}
-  .ch-result-item:hover{border-color:var(--accent);}
-  .ch-result-item img{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
-  .ch-result-info{flex:1;min-width:0;}
-  .ch-result-name{font-size:0.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ch-result-sub{font-size:0.68rem;color:var(--text3);}
-  .ch-result-plus{font-size:1rem;color:var(--accent);font-weight:700;flex-shrink:0;}
-  .ch-add-msg{font-size:0.73rem;color:var(--text3);text-align:center;padding:0.3rem 0;}
+/* VIDEO GRID */
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.4rem;}
+.video-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;animation:fadeUp 0.35s ease both;}
+.video-card:hover{transform:translateY(-4px);border-color:#3a3a3a;box-shadow:0 12px 32px rgba(0,0,0,0.5);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.thumb-wrap{position:relative;padding-top:56.25%;overflow:hidden;background:var(--surface2);}
+.thumb-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.3s;}
+.video-card:hover .thumb-wrap img{transform:scale(1.04);}
+.duration-badge{position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,0.82);color:#fff;font-size:0.72rem;padding:2px 6px;border-radius:3px;font-weight:500;}
+.card-body{padding:0.85rem;}
+.card-ch{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;}
+.card-ch img{width:22px;height:22px;border-radius:50%;}
+.card-ch-name{font-size:0.74rem;color:var(--accent);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-title{font-size:0.88rem;font-weight:500;line-height:1.4;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:0.55rem;}
+.card-meta{display:flex;gap:0.8rem;font-size:0.72rem;color:var(--text3);}
 
-  #channelList{list-style:none;}
-  .ch-all{font-size:0.82rem;font-weight:700;color:var(--text2);padding:0.55rem 1.2rem;cursor:pointer;border-left:3px solid transparent;transition:background 0.15s;display:flex;align-items:center;gap:0.5rem;}
-  .ch-all:hover{background:var(--surface);}
-  .ch-all.active{border-left-color:var(--accent);color:var(--text);background:var(--surface);}
-  .channel-item{display:flex;align-items:center;gap:0.7rem;padding:0.5rem 1.2rem;cursor:pointer;transition:background 0.15s;border-left:3px solid transparent;user-select:none;}
-  .channel-item:hover{background:var(--surface);}
-  .channel-item.active{border-left-color:var(--accent);background:var(--surface);}
-  .channel-item img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2);}
-  .channel-name{font-size:0.82rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
-  .channel-item.active .channel-name{color:var(--text);}
-  .ch-del{opacity:0;background:none;border:none;color:var(--text3);font-size:0.8rem;cursor:pointer;padding:0 2px;transition:color 0.15s,opacity 0.15s;flex-shrink:0;}
-  .channel-item:hover .ch-del{opacity:1;}
-  .ch-del:hover{color:var(--accent);}
-  .ch-empty{padding:0.8rem 1.2rem;font-size:0.78rem;color:var(--text3);text-align:center;}
+/* STATE */
+.state-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:1rem;color:var(--text3);text-align:center;padding:2rem;}
+.state-screen .icon{font-size:3rem;opacity:0.4;}
+.state-screen p{font-size:0.9rem;line-height:1.6;max-width:340px;}
+.state-screen strong{color:var(--text2);}
 
-  main{padding:1.8rem 2rem;min-width:0;}
-  .feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
-  .feed-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1.5px;}
-  .video-count{font-size:0.78rem;color:var(--text3);}
-  .date-tabs{display:flex;gap:0.4rem;margin-bottom:1.4rem;flex-wrap:wrap;}
-  .date-tab{background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-family:inherit;font-size:0.78rem;padding:0.35rem 0.9rem;cursor:pointer;transition:all 0.15s;}
-  .date-tab:hover{border-color:var(--accent);color:var(--accent);}
-  .date-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+/* SKELETON */
+.skeleton{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.skel-thumb{width:100%;padding-top:56.25%;background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;}
+.skel-body{padding:0.85rem;display:flex;flex-direction:column;gap:0.5rem;}
+.skel-line{height:10px;border-radius:4px;background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;}
+.skel-line.short{width:60%;}
+@keyframes shimmer{to{background-position:-200% 0}}
 
-  .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.4rem;}
-  .video-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;animation:fadeUp 0.35s ease both;}
-  .video-card:hover{transform:translateY(-4px);border-color:#3a3a3a;box-shadow:0 12px 32px rgba(0,0,0,0.5);}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-  .thumb-wrap{position:relative;padding-top:56.25%;overflow:hidden;background:var(--surface2);}
-  .thumb-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.3s;}
-  .video-card:hover .thumb-wrap img{transform:scale(1.04);}
-  .duration-badge{position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,0.82);color:#fff;font-size:0.72rem;padding:2px 6px;border-radius:3px;font-weight:500;}
-  .card-body{padding:0.85rem;}
-  .card-ch{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;}
-  .card-ch img{width:22px;height:22px;border-radius:50%;object-fit:cover;}
-  .card-ch-name{font-size:0.74rem;color:var(--accent);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .card-title{font-size:0.88rem;font-weight:500;line-height:1.4;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:0.55rem;}
-  .card-meta{display:flex;gap:0.8rem;font-size:0.72rem;color:var(--text3);}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:500;align-items:center;justify-content:center;padding:1.5rem;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:900px;overflow:hidden;animation:modalIn 0.22s ease;will-change:transform;transform:translateZ(0);}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.modal-player{position:relative;padding-top:56.25%;background:#000;}
+.modal-player iframe{position:absolute;inset:0;width:100%;height:100%;border:none;}
+.modal-info{padding:1rem 1.2rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;}
+.modal-info-left{flex:1;min-width:0;}
+.modal-title{font-size:0.95rem;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:0.4rem;}
+.modal-meta{display:flex;align-items:center;gap:0.8rem;font-size:0.78rem;color:var(--text2);flex-wrap:wrap;}
+.modal-meta img{width:20px;height:20px;border-radius:50%;}
+.modal-actions{display:flex;gap:0.5rem;flex-shrink:0;}
+.modal-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:inherit;font-size:0.78rem;padding:0.4rem 0.9rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.modal-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .state-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:1rem;color:var(--text3);text-align:center;padding:2rem;}
-  .state-screen .icon{font-size:3rem;opacity:0.4;}
-  .state-screen p{font-size:0.9rem;line-height:1.6;max-width:340px;}
-  .state-screen strong{color:var(--text2);}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-  .skeleton{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-  .skel-thumb{width:100%;padding-top:56.25%;background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;}
-  .skel-body{padding:0.85rem;display:flex;flex-direction:column;gap:0.5rem;}
-  .skel-line{height:10px;border-radius:4px;background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;}
-  .skel-line.short{width:60%;}
-  @keyframes shimmer{to{background-position:-200% 0}}
+/* ── PC ONLY ── */
+@media(min-width:701px){.mobile-only{display:none !important;}}
 
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:999;align-items:center;justify-content:center;padding:1.5rem;}
-  .modal-overlay.open{display:flex;}
-  .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:900px;overflow:hidden;animation:modalIn 0.22s ease;will-change:transform;transform:translateZ(0);}
-  @keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-  .modal-player{position:relative;padding-top:56.25%;background:#000;}
-  .modal-player iframe{position:absolute;inset:0;width:100%;height:100%;border:none;}
-  .modal-info{padding:1rem 1.2rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;}
-  .modal-info-left{flex:1;min-width:0;}
-  .modal-title{font-size:0.95rem;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:0.4rem;}
-  .modal-meta{display:flex;align-items:center;gap:0.8rem;font-size:0.78rem;color:var(--text2);flex-wrap:wrap;}
-  .modal-meta img{width:20px;height:20px;border-radius:50%;}
-  .modal-actions{display:flex;gap:0.5rem;flex-shrink:0;}
-  .modal-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:inherit;font-size:0.78rem;padding:0.4rem 0.9rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-  .modal-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* ── MOBILE ── */
+@media(max-width:700px){
+  .pc-only{display:none !important;}
+  header{padding:0 1rem;height:56px;}
+  .logo{font-size:1.3rem;}
+  .layout{grid-template-columns:1fr;}
+  aside{display:none;}
+  main{padding:1rem;padding-bottom:calc(70px + env(safe-area-inset-bottom));}
 
-  ::-webkit-scrollbar{width:5px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-
-  /* ── PC 레이아웃 ── */
-  @media(min-width:701px){
-    .mobile-only { display:none !important; }
+  /* 하단 탭바 */
+  .mobile-tabbar{
+    position:fixed;bottom:0;left:0;right:0;z-index:400;
+    background:rgba(14,14,14,0.97);border-top:1px solid var(--border);
+    display:flex;
+    height:calc(56px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
   }
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--text3);font-family:inherit;font-size:0.6rem;cursor:pointer;transition:color 0.15s;}
+  .tab-btn .tab-icon{font-size:1.3rem;line-height:1;}
+  .tab-btn.active{color:var(--accent);}
 
-  /* ── 모바일 레이아웃 ── */
-  @media(max-width:700px){
-    .pc-only { display:none !important; }
-    header { padding:0 1rem; height:56px; }
-    .logo { font-size:1.3rem; }
-    .layout { grid-template-columns:1fr; }
-    aside { display:none; }
-    main { padding:1rem; padding-bottom:80px; }
+  /* 드로어/시트 공통 */
+  .mobile-drawer,.mobile-add-sheet,.mobile-search-sheet{position:fixed;inset:0;z-index:600;display:none;pointer-events:none;}
+  .mobile-drawer.open,.mobile-add-sheet.open,.mobile-search-sheet.open{display:block;pointer-events:auto;}
+  .sheet-overlay,.drawer-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.75);}
 
-    /* 하단 탭바 */
-    .mobile-tabbar {
-      position:fixed; bottom:0; left:0; right:0; z-index:200;
-      background:rgba(14,14,14,0.97); border-top:1px solid var(--border);
-      display:flex; height:60px;
-      backdrop-filter:blur(10px);
-    }
-    .tab-btn {
-      flex:1; display:flex; flex-direction:column; align-items:center;
-      justify-content:center; gap:3px; border:none; background:none;
-      color:var(--text3); font-family:inherit; font-size:0.6rem;
-      cursor:pointer; transition:color 0.15s; padding:0;
-    }
-    .tab-btn .tab-icon { font-size:1.3rem; line-height:1; }
-    .tab-btn.active { color:var(--accent); }
+  /* 드로어 */
+  .drawer-panel{position:absolute;left:0;top:0;bottom:0;width:82%;max-width:320px;background:var(--surface);overflow-y:auto;transform:translateX(-100%);transition:transform 0.28s ease;padding-bottom:20px;}
+  .mobile-drawer.open .drawer-panel{transform:translateX(0);}
+  .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem 0.6rem;border-bottom:1px solid var(--border);}
+  .drawer-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;color:var(--text);}
+  .drawer-close{background:none;border:none;color:var(--text3);font-size:1.4rem;cursor:pointer;padding:4px;}
 
-    /* 모바일 드로어 (채널 목록) */
-    .mobile-drawer {
-      position:fixed; inset:0; z-index:300; display:none;
-    }
-    .mobile-drawer.open { display:block; }
-    .drawer-overlay {
-      position:absolute; inset:0; background:rgba(0,0,0,0.7);
-    }
-    .drawer-panel {
-      position:absolute; left:0; top:0; bottom:0; width:80%; max-width:320px;
-      background:var(--surface); overflow-y:auto;
-      transform:translateX(-100%); transition:transform 0.28s ease;
-      padding-bottom:20px;
-    }
-    .mobile-drawer.open .drawer-panel { transform:translateX(0); }
-    .drawer-header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:1rem 1.2rem 0.6rem; border-bottom:1px solid var(--border);
-    }
-    .drawer-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:1px; color:var(--text); }
-    .drawer-close {
-      background:none; border:none; color:var(--text3); font-size:1.4rem;
-      cursor:pointer; padding:4px;
-    }
+  /* 바텀시트 */
+  .sheet-panel{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:1.2rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.28s ease;}
+  .mobile-add-sheet.open .sheet-panel,.mobile-search-sheet.open .sheet-panel{transform:translateY(0);}
+  .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1rem;}
+  .sheet-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:1rem;}
 
-    /* 모바일 채널 추가 바텀시트 */
-    .mobile-add-sheet {
-      position:fixed; inset:0; z-index:300; display:none;
-    }
-    .mobile-add-sheet.open { display:block; }
-    .sheet-overlay {
-      position:absolute; inset:0; background:rgba(0,0,0,0.7);
-    }
-    .sheet-panel {
-      position:absolute; left:0; right:0; bottom:0;
-      background:var(--surface); border-radius:16px 16px 0 0;
-      padding:1.2rem; max-height:85vh; overflow-y:auto;
-      transform:translateY(100%); transition:transform 0.28s ease;
-    }
-    .mobile-add-sheet.open .sheet-panel { transform:translateY(0); }
-    .sheet-handle {
-      width:36px; height:4px; background:var(--border); border-radius:2px;
-      margin:0 auto 1rem;
-    }
-    .sheet-title { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:1rem; }
+  /* 모바일 검색 입력창 */
+  .mobile-search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem;color:var(--text);font-family:inherit;font-size:1rem;outline:none;display:block;}
+  .mobile-search-input:focus{border-color:var(--accent);}
+  .mobile-search-input::placeholder{color:var(--text3);}
 
-    /* 모바일 검색 바텀시트 */
-    .mobile-search-sheet {
-      position:fixed; inset:0; z-index:300; display:none;
-    }
-    .mobile-search-sheet.open { display:block; }
-    .mobile-search-sheet .sheet-panel { padding:1.2rem; }
-    .mobile-search-input {
-      width:100%; background:var(--surface2); border:1px solid var(--border);
-      border-radius:8px; padding:0.7rem 1rem; color:var(--text);
-      font-family:inherit; font-size:1rem; outline:none;
-    }
-    .mobile-search-input:focus { border-color:var(--accent); }
+  /* 모달 모바일 */
+  .modal-overlay{padding:0;align-items:flex-end;}
+  .modal-box{border-radius:20px 20px 0 0;max-width:100%;}
+  .modal-info{flex-direction:column;gap:0.8rem;}
+  .modal-actions{width:100%;justify-content:stretch;}
+  .modal-btn{flex:1;text-align:center;padding:0.7rem;}
 
-    /* 모달 모바일 최적화 */
-    .modal-overlay { padding:0; align-items:flex-end; }
-    .modal-box { border-radius:16px 16px 0 0; max-width:100%; }
-    .modal-info { flex-direction:column; gap:0.8rem; }
-    .modal-actions { width:100%; justify-content:stretch; }
-    .modal-btn { flex:1; text-align:center; padding:0.6rem; }
-
-    /* 비디오 그리드 모바일 */
-    .video-grid { grid-template-columns:1fr 1fr; gap:0.8rem; }
-    .card-title { font-size:0.78rem; }
-    .card-meta { font-size:0.65rem; gap:0.4rem; }
-  }
-
-  @media(max-width:400px){
-    .video-grid { grid-template-columns:1fr; }
-  }
+  /* 그리드 */
+  .video-grid{grid-template-columns:1fr 1fr;gap:0.8rem;}
+  .card-title{font-size:0.78rem;}
+  .card-meta{font-size:0.65rem;gap:0.4rem;}
+}
+@media(max-width:400px){.video-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -286,11 +227,11 @@ window.removeFirestoreChannel = async (uid, ch) => {
 <header>
   <div class="logo">YT AUTO FEED</div>
   <div class="header-right">
-    <div class="search-wrap" id="searchWrap" style="display:none">
+    <div class="search-wrap pc-only" id="searchWrap" style="display:none">
       <input type="text" id="searchInput" placeholder="제목/키워드 검색...">
       <span class="search-icon">🔍</span>
     </div>
-    <select class="sort-select" id="sortSelect" style="display:none">
+    <select class="sort-select pc-only" id="sortSelect" style="display:none">
       <option value="date">최신순</option>
       <option value="views">조회수순</option>
     </select>
@@ -303,7 +244,6 @@ window.removeFirestoreChannel = async (uid, ch) => {
 </header>
 
 <div class="layout">
-  <!-- PC 사이드바 -->
   <aside class="pc-only">
     <div class="sidebar-title">내 채널</div>
     <div class="ch-filter-wrap">
@@ -320,69 +260,6 @@ window.removeFirestoreChannel = async (uid, ch) => {
     <div class="ch-all active" id="chAll" onclick="selectChannel('all')">📺 전체 채널</div>
     <ul id="channelList"></ul>
   </aside>
-
-  <!-- 모바일 드로어 -->
-  <div class="mobile-drawer mobile-only" id="mobileDrawer">
-    <div class="drawer-overlay" onclick="closeDrawer()"></div>
-    <div class="drawer-panel">
-      <div class="drawer-header">
-        <span class="drawer-title">내 채널</span>
-        <button class="drawer-close" onclick="closeDrawer()">✕</button>
-      </div>
-      <div style="padding:0.6rem 1rem 0">
-        <div class="ch-filter-wrap" style="padding:0 0 0.6rem">
-          <input type="text" id="chFilterInputM" placeholder="채널 필터...">
-          <span class="ch-filter-icon">🔍</span>
-        </div>
-      </div>
-      <div class="ch-all active" id="chAllM" onclick="selectChannel('all');closeDrawer()">📺 전체 채널</div>
-      <ul id="channelListM"></ul>
-    </div>
-  </div>
-
-  <!-- 모바일 채널 추가 바텀시트 -->
-  <div class="mobile-add-sheet mobile-only" id="mobileAddSheet">
-    <div class="sheet-overlay" onclick="closeAddSheet()"></div>
-    <div class="sheet-panel">
-      <div class="sheet-handle"></div>
-      <div class="sheet-title">채널 추가</div>
-      <div class="ch-add-row" style="margin-bottom:0.6rem">
-        <input type="text" id="chAddInputM" placeholder="채널명 검색" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.9rem;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;min-width:0;">
-        <button onclick="searchChannelM()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.85rem;font-weight:700;padding:0.6rem 1rem;cursor:pointer;white-space:nowrap;flex-shrink:0;">검색</button>
-      </div>
-      <div id="chAddResultM"></div>
-    </div>
-  </div>
-
-  <!-- 모바일 검색 바텀시트 -->
-  <div class="mobile-search-sheet mobile-only" id="mobileSearchSheet">
-    <div class="sheet-overlay" onclick="closeSearchSheet()"></div>
-    <div class="sheet-panel">
-      <div class="sheet-handle"></div>
-      <div class="sheet-title">검색 / 정렬</div>
-      <input type="text" id="searchInputM" class="mobile-search-input" placeholder="제목/키워드 검색...">
-      <select id="sortSelectM" style="width:100%;margin-top:0.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;padding:0.6rem;outline:none;">
-        <option value="date">최신순</option>
-        <option value="views">조회수순</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- 모바일 하단 탭바 -->
-  <div class="mobile-tabbar mobile-only">
-    <button class="tab-btn" onclick="openDrawer()">
-      <span class="tab-icon">📺</span><span>채널</span>
-    </button>
-    <button class="tab-btn" onclick="openAddSheet()">
-      <span class="tab-icon">➕</span><span>추가</span>
-    </button>
-    <button class="tab-btn" onclick="openSearchSheet()">
-      <span class="tab-icon">🔍</span><span>검색</span>
-    </button>
-    <button class="tab-btn" onclick="refreshFeed()">
-      <span class="tab-icon">🔄</span><span>새로고침</span>
-    </button>
-  </div>
 
   <main>
     <div class="state-screen" id="welcomeScreen">
@@ -417,10 +294,8 @@ window.removeFirestoreChannel = async (uid, ch) => {
         <div class="modal-meta">
           <img id="modalChThumb" src="" alt="">
           <span id="modalChName"></span>
-          <span>·</span>
-          <span id="modalViews"></span>
-          <span>·</span>
-          <span id="modalDate"></span>
+          <span>·</span><span id="modalViews"></span>
+          <span>·</span><span id="modalDate"></span>
         </div>
       </div>
       <div class="modal-actions">
@@ -431,64 +306,108 @@ window.removeFirestoreChannel = async (uid, ch) => {
   </div>
 </div>
 
+<!-- 모바일 하단 탭바 -->
+<div class="mobile-tabbar mobile-only">
+  <button class="tab-btn" onclick="openDrawer()"><span class="tab-icon">📺</span><span>채널</span></button>
+  <button class="tab-btn" onclick="openAddSheet()"><span class="tab-icon">➕</span><span>추가</span></button>
+  <button class="tab-btn" onclick="openSearchSheet()"><span class="tab-icon">🔍</span><span>검색</span></button>
+  <button class="tab-btn" onclick="refreshFeed()"><span class="tab-icon">🔄</span><span>새로고침</span></button>
+</div>
+
+<!-- 모바일 드로어 (채널 목록) -->
+<div class="mobile-drawer mobile-only" id="mobileDrawer">
+  <div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <span class="drawer-title">내 채널</span>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div style="padding:0.6rem 1rem 0">
+      <div class="ch-filter-wrap" style="padding:0 0 0.6rem">
+        <input type="text" id="chFilterInputM" placeholder="채널 필터...">
+        <span class="ch-filter-icon">🔍</span>
+      </div>
+    </div>
+    <div class="ch-all active" id="chAllM" onclick="selectChannel('all');closeDrawer()">📺 전체 채널</div>
+    <ul id="channelListM"></ul>
+  </div>
+</div>
+
+<!-- 모바일 채널 추가 바텀시트 -->
+<div class="mobile-add-sheet mobile-only" id="mobileAddSheet">
+  <div class="sheet-overlay" onclick="closeAddSheet()"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">채널 추가</div>
+    <div class="ch-add-row" style="margin-bottom:0.8rem">
+      <input type="text" id="chAddInputM" placeholder="채널명 검색"
+        style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.75rem 1rem;color:var(--text);font-family:inherit;font-size:1rem;outline:none;min-width:0;transition:border-color 0.2s;">
+      <button onclick="searchChannelM()"
+        style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:700;padding:0.75rem 1.2rem;cursor:pointer;white-space:nowrap;flex-shrink:0;">검색</button>
+    </div>
+    <div id="chAddResultM"></div>
+  </div>
+</div>
+
+<!-- 모바일 검색 바텀시트 -->
+<div class="mobile-search-sheet mobile-only" id="mobileSearchSheet">
+  <div class="sheet-overlay" onclick="closeSearchSheet()"></div>
+  <div class="sheet-panel">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">검색 / 정렬</div>
+    <input type="text" id="searchInputM" class="mobile-search-input" placeholder="제목/키워드 검색...">
+    <select id="sortSelectM" style="width:100%;margin-top:0.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:1rem;padding:0.75rem 1rem;outline:none;cursor:pointer;">
+      <option value="date">최신순</option>
+      <option value="views">조회수순</option>
+    </select>
+  </div>
+</div>
+
 <script>
-// ★ Google OAuth Client ID ★
 const CLIENT_ID = '866899369927-9e6lmj6l2v09mpgpj9uq5oa0t8r2fca3.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/youtube.readonly openid profile email';
 
-let accessToken = null;
-let currentUid = null;
-let allVideos = [];
-let channels = [];
-let selectedChannel = 'all';
-let dateFilter = 'all';
-let searchQuery = '';
-let sortMode = 'date';
-let currentVideoId = null;
-let nextPageTokenMap = {};
-let displayedCount = 12;
+let accessToken = null, currentUid = null, tokenClient = null;
+let allVideos = [], channels = [];
+let selectedChannel = 'all', dateFilter = 'all', searchQuery = '', sortMode = 'date';
+let currentVideoId = null, isVideoPlaying = false;
+let nextPageTokenMap = {}, displayedCount = 12;
 const PAGE_SIZE = 12;
-let tokenClient = null;
 let lastActivityAt = Date.now();
-let isVideoPlaying = false; // 영상 재생 중 여부
-const IDLE_LIMIT = 30 * 60 * 1000; // 30분 이상 미사용 시 갱신 안 함
+const IDLE_LIMIT = 30 * 60 * 1000;
 
-// ── 사용자 활동 감지 (PC + 모바일) ──
-['click','keydown','scroll','mousemove','touchstart','touchmove'].forEach(ev => {
-  document.addEventListener(ev, () => { lastActivityAt = Date.now(); }, { passive: true });
-});
+// 활동 감지 (PC + 모바일)
+['click','keydown','scroll','mousemove','touchstart','touchmove'].forEach(ev =>
+  document.addEventListener(ev, () => { lastActivityAt = Date.now(); }, { passive: true })
+);
 
-// ── 토큰 자동 갱신 (50분마다, 사용 중일 때만) ──
+// 토큰 자동 갱신
 function startTokenRefresh() {
   setInterval(() => {
     if (!tokenClient) return;
-    const idle = Date.now() - lastActivityAt;
-    // 영상 재생 중이거나 30분 이내 활동이 있으면 갱신
-    if (isVideoPlaying || idle <= IDLE_LIMIT) {
+    if (isVideoPlaying || Date.now() - lastActivityAt <= IDLE_LIMIT) {
       tokenClient.requestAccessToken({ prompt: '' });
     }
   }, 50 * 60 * 1000);
 }
 
-// ── 초기화 ──
+// 초기화
 window.addEventListener('load', async () => {
-  const savedToken = sessionStorage.getItem('yt_token');
-  const savedUid = sessionStorage.getItem('yt_uid');
-  if (savedToken && savedUid) {
-    accessToken = savedToken;
+  const t = localStorage.getItem('yt_token');
+  const u = localStorage.getItem('yt_uid');
+  if (t && u) {
+    accessToken = t;
     try {
-      const profile = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
-      currentUid = savedUid;
-      if (profile.picture) document.getElementById('profileImg').src = profile.picture;
+      const p = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+      currentUid = u;
+      if (p.picture) document.getElementById('profileImg').src = p.picture;
       showLoggedIn();
       loadChannelsFromFirestore();
-    } catch(e) {
-      sessionStorage.clear();
-    }
+    } catch(e) { localStorage.clear(); }
   }
 });
 
-// ── 로그인 ──
+// 로그인
 document.getElementById('loginBtn').addEventListener('click', () => {
   if (CLIENT_ID === 'YOUR_CLIENT_ID') { alert('Client ID를 먼저 입력해 주세요!'); return; }
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -496,18 +415,17 @@ document.getElementById('loginBtn').addEventListener('click', () => {
     callback: async (resp) => {
       if (resp.error) { console.error(resp); return; }
       accessToken = resp.access_token;
-      sessionStorage.setItem('yt_token', accessToken);
+      localStorage.setItem('yt_token', accessToken);
       try {
-        const profile = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
-        currentUid = profile.sub;
-        sessionStorage.setItem('yt_uid', currentUid);
-        if (profile.picture) document.getElementById('profileImg').src = profile.picture;
+        const p = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+        currentUid = p.sub;
+        localStorage.setItem('yt_uid', currentUid);
+        if (p.picture) document.getElementById('profileImg').src = p.picture;
         showLoggedIn();
         loadChannelsFromFirestore();
-        startTokenRefresh(); // 로그인 성공 후 자동 갱신 시작
+        startTokenRefresh();
       } catch(e) {
-        console.error('프로필 로드 실패', e);
-        sessionStorage.clear();
+        localStorage.clear();
         alert('로그인 중 오류가 발생했어요. 다시 시도해 주세요.');
         location.reload();
       }
@@ -516,24 +434,21 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   tokenClient.requestAccessToken();
 });
 
-// ── 로그아웃 ──
+// 로그아웃
 document.getElementById('logoutBtn').addEventListener('click', () => {
   google.accounts.oauth2.revoke(accessToken, ()=>{});
   accessToken = null; currentUid = null;
-  sessionStorage.removeItem('yt_token');
-  sessionStorage.removeItem('yt_uid');
+  localStorage.removeItem('yt_token'); localStorage.removeItem('yt_uid');
   allVideos = []; channels = [];
   document.getElementById('loginBtn').style.display = 'block';
   document.getElementById('welcomeScreen').style.display = 'flex';
   ['profileArea','searchWrap','sortSelect','chAddSection','feedArea'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.style.display='none';
+    const el = document.getElementById(id); if(el) el.style.display = 'none';
   });
   document.getElementById('channelList').innerHTML = '';
-  const ulM = document.getElementById('channelListM');
-  if (ulM) ulM.innerHTML = '';
+  const m = document.getElementById('channelListM'); if(m) m.innerHTML = '';
   document.getElementById('chAll').className = 'ch-all active';
-  const chAllM = document.getElementById('chAllM');
-  if (chAllM) chAllM.className = 'ch-all active';
+  const ma = document.getElementById('chAllM'); if(ma) ma.className = 'ch-all active';
 });
 
 function showLoggedIn() {
@@ -541,130 +456,48 @@ function showLoggedIn() {
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('feedArea').style.display = 'block';
   document.getElementById('profileArea').style.display = 'flex';
-  // PC 전용 (모바일에선 숨겨짐)
   ['searchWrap','sortSelect','chAddSection'].forEach(id => {
     const el = document.getElementById(id); if(el) el.style.display = 'block';
   });
   showSkeletons();
 }
 
-// ── Firestore에서 채널 불러오기 ──
+// Firestore
 async function loadChannelsFromFirestore() {
   channels = await window.loadFirestoreChannels(currentUid);
-  renderChannelList();
-  loadVideos();
+  renderChannelList(); loadVideos();
 }
 
-// ── 채널 검색 (YouTube API) ──
+// 채널 검색 (PC)
 async function searchChannel() {
-  const q = document.getElementById('chAddInput').value.trim();
-  if (!q) return;
+  const q = document.getElementById('chAddInput').value.trim(); if(!q) return;
   const btn = document.getElementById('chAddBtn');
   btn.disabled = true; btn.textContent = '검색 중...';
   const result = document.getElementById('chAddResult');
   result.innerHTML = '<div class="ch-add-msg">검색 중...</div>';
   try {
     const data = await gFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(q)}&maxResults=5`);
-    if (!data.items?.length) { result.innerHTML='<div class="ch-add-msg">결과 없음</div>'; return; }
+    if (!data.items?.length) { result.innerHTML = '<div class="ch-add-msg">결과 없음</div>'; return; }
     result.innerHTML = '';
     data.items.forEach(item => {
-      const id = item.snippet.channelId;
-      const title = item.snippet.title;
-      const thumb = item.snippet.thumbnails?.default?.url || '';
-      const already = !!channels.find(c => c.id === id);
+      const id=item.snippet.channelId, title=item.snippet.title, thumb=item.snippet.thumbnails?.default?.url||'';
+      const already = !!channels.find(c=>c.id===id);
       const div = document.createElement('div');
       div.className = 'ch-result-item';
-      div.innerHTML = `
-        <img src="${thumb}" alt="">
-        <div class="ch-result-info">
-          <div class="ch-result-name">${title}</div>
-          <div class="ch-result-sub">${already ? '이미 추가됨' : ''}</div>
-        </div>
-        <span class="ch-result-plus">${already ? '✓' : '+'}</span>`;
-      if (!already) div.addEventListener('click', () => addChannel(id, title, thumb));
+      div.innerHTML = `<img src="${thumb}" alt=""><div class="ch-result-info"><div class="ch-result-name">${title}</div><div class="ch-result-sub">${already?'이미 추가됨':''}</div></div><span class="ch-result-plus">${already?'✓':'+'}</span>`;
+      if (!already) div.addEventListener('click', ()=>addChannel(id,title,thumb));
       result.appendChild(div);
     });
-  } catch(e) {
-    result.innerHTML = '<div class="ch-add-msg">검색 실패</div>';
-  } finally {
-    btn.disabled = false; btn.textContent = '검색';
-  }
+  } catch(e) { result.innerHTML = '<div class="ch-add-msg">검색 실패</div>'; }
+  finally { btn.disabled=false; btn.textContent='검색'; }
 }
-document.getElementById('chAddInput').addEventListener('keydown', e => { if(e.key==='Enter') searchChannel(); });
+document.getElementById('chAddInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') searchChannel(); });
 
-// ── 채널 추가 → Firestore 저장 ──
-async function addChannel(id, title, thumb) {
-  if (channels.find(c => c.id === id)) return;
-  const ch = { id, title, thumb };
-  channels.push(ch);
-  await window.addFirestoreChannel(currentUid, ch);
-  document.getElementById('chAddResult').innerHTML = '';
-  document.getElementById('chAddInput').value = '';
-  renderChannelList(document.getElementById('chFilterInput').value);
-  loadVideos();
-}
-
-// ── 채널 삭제 → Firestore 반영 ──
-async function removeChannel(id) {
-  const ch = channels.find(c => c.id === id);
-  if (!ch) return;
-  channels = channels.filter(c => c.id !== id);
-  await window.removeFirestoreChannel(currentUid, ch);
-  if (selectedChannel === id) { selectedChannel = 'all'; document.getElementById('chAll').classList.add('active'); }
-  renderChannelList(document.getElementById('chFilterInput').value);
-  loadVideos();
-}
-
-// ── 사이드바 렌더 (PC + 모바일 동시) ──
-function renderChannelList(filter = '') {
-  const list = filter ? channels.filter(c => c.title.toLowerCase().includes(filter.toLowerCase())) : channels;
-  const emptyHtml = '<li class="ch-empty">채널을 추가해보세요!</li>';
-
-  const makeItems = (ul, isMobile) => {
-    ul.innerHTML = '';
-    if (!list.length) { ul.innerHTML = emptyHtml; return; }
-    list.forEach(ch => {
-      const li = document.createElement('li');
-      li.className = 'channel-item' + (ch.id === selectedChannel ? ' active' : '');
-      li.dataset.id = ch.id;
-      li.innerHTML = `
-        <img src="${ch.thumb}" alt="" onerror="this.style.display='none'">
-        <span class="channel-name">${ch.title}</span>
-        <button class="ch-del" title="삭제">✕</button>`;
-      li.querySelector('.ch-del').addEventListener('click', e => { e.stopPropagation(); removeChannel(ch.id); });
-      li.addEventListener('click', () => {
-        selectChannel(ch.id);
-        if (isMobile) closeDrawer();
-      });
-      ul.appendChild(li);
-    });
-  };
-
-  makeItems(document.getElementById('channelList'), false);
-  const ulM = document.getElementById('channelListM');
-  if (ulM) makeItems(ulM, true);
-}
-
-document.getElementById('chFilterInput').addEventListener('input', e => { renderChannelList(e.target.value.trim()); });
-document.getElementById('chFilterInputM')?.addEventListener('input', e => { renderChannelList(e.target.value.trim()); });
-
-// ── 모바일 드로어 ──
-function openDrawer() { document.getElementById('mobileDrawer').classList.add('open'); }
-function closeDrawer() { document.getElementById('mobileDrawer').classList.remove('open'); }
-
-// ── 모바일 채널 추가 바텀시트 ──
-function openAddSheet() { document.getElementById('mobileAddSheet').classList.add('open'); }
-function closeAddSheet() {
-  document.getElementById('mobileAddSheet').classList.remove('open');
-  document.getElementById('chAddResultM').innerHTML = '';
-  document.getElementById('chAddInputM').value = '';
-}
-
+// 채널 검색 (모바일)
 async function searchChannelM() {
-  const q = document.getElementById('chAddInputM').value.trim();
-  if (!q) return;
-  const btn = document.querySelector('#mobileAddSheet button');
-  btn.disabled = true; btn.textContent = '검색 중...';
+  const q = document.getElementById('chAddInputM').value.trim(); if(!q) return;
+  const btn = document.querySelector('#mobileAddSheet .sheet-panel button');
+  if(btn){btn.disabled=true; btn.textContent='검색 중...';}
   const result = document.getElementById('chAddResultM');
   result.innerHTML = '<div class="ch-add-msg">검색 중...</div>';
   try {
@@ -672,265 +505,190 @@ async function searchChannelM() {
     if (!data.items?.length) { result.innerHTML = '<div class="ch-add-msg">결과 없음</div>'; return; }
     result.innerHTML = '';
     data.items.forEach(item => {
-      const id = item.snippet.channelId;
-      const title = item.snippet.title;
-      const thumb = item.snippet.thumbnails?.default?.url || '';
-      const already = !!channels.find(c => c.id === id);
+      const id=item.snippet.channelId, title=item.snippet.title, thumb=item.snippet.thumbnails?.default?.url||'';
+      const already = !!channels.find(c=>c.id===id);
       const div = document.createElement('div');
       div.className = 'ch-result-item';
-      div.innerHTML = `
-        <img src="${thumb}" alt="">
-        <div class="ch-result-info">
-          <div class="ch-result-name">${title}</div>
-          <div class="ch-result-sub">${already ? '이미 추가됨' : ''}</div>
-        </div>
-        <span class="ch-result-plus">${already ? '✓' : '+'}</span>`;
-      if (!already) div.addEventListener('click', () => { addChannel(id, title, thumb); closeAddSheet(); });
+      div.innerHTML = `<img src="${thumb}" alt=""><div class="ch-result-info"><div class="ch-result-name">${title}</div><div class="ch-result-sub">${already?'이미 추가됨':''}</div></div><span class="ch-result-plus">${already?'✓':'+'}</span>`;
+      if (!already) div.addEventListener('click', ()=>{ addChannel(id,title,thumb); closeAddSheet(); });
       result.appendChild(div);
     });
-  } catch(e) {
-    result.innerHTML = '<div class="ch-add-msg">검색 실패</div>';
-  } finally {
-    btn.disabled = false; btn.textContent = '검색';
-  }
+  } catch(e) { result.innerHTML = '<div class="ch-add-msg">검색 실패</div>'; }
+  finally { if(btn){btn.disabled=false; btn.textContent='검색';} }
 }
-document.getElementById('chAddInputM')?.addEventListener('keydown', e => { if(e.key==='Enter') searchChannelM(); });
+document.getElementById('chAddInputM')?.addEventListener('keydown', e=>{ if(e.key==='Enter') searchChannelM(); });
 
-// ── 모바일 검색 바텀시트 ──
-function openSearchSheet() { document.getElementById('mobileSearchSheet').classList.add('open'); }
-function closeSearchSheet() { document.getElementById('mobileSearchSheet').classList.remove('open'); }
+// 채널 추가/삭제
+async function addChannel(id, title, thumb) {
+  if (channels.find(c=>c.id===id)) return;
+  const ch = {id,title,thumb};
+  channels.push(ch);
+  await window.addFirestoreChannel(currentUid, ch);
+  document.getElementById('chAddResult').innerHTML = '';
+  document.getElementById('chAddInput').value = '';
+  renderChannelList(); loadVideos();
+}
+async function removeChannel(id) {
+  const ch = channels.find(c=>c.id===id); if(!ch) return;
+  channels = channels.filter(c=>c.id!==id);
+  await window.removeFirestoreChannel(currentUid, ch);
+  if (selectedChannel===id) { selectedChannel='all'; document.getElementById('chAll').classList.add('active'); const ma=document.getElementById('chAllM'); if(ma) ma.classList.add('active'); }
+  renderChannelList(); loadVideos();
+}
 
-document.getElementById('searchInputM')?.addEventListener('input', e => { searchQuery = e.target.value.trim(); renderFeed(); });
-document.getElementById('sortSelectM')?.addEventListener('change', e => { sortMode = e.target.value; renderFeed(); });
+// 사이드바 렌더 (PC + 모바일 동시)
+function renderChannelList(filter='') {
+  const list = filter ? channels.filter(c=>c.title.toLowerCase().includes(filter.toLowerCase())) : channels;
+  const makeItems = (ul, isMobile) => {
+    ul.innerHTML = '';
+    if (!list.length) { ul.innerHTML='<li class="ch-empty">채널을 추가해보세요!</li>'; return; }
+    list.forEach(ch => {
+      const li = document.createElement('li');
+      li.className = 'channel-item'+(ch.id===selectedChannel?' active':'');
+      li.dataset.id = ch.id;
+      li.innerHTML = `<img src="${ch.thumb}" alt="" onerror="this.style.display='none'"><span class="channel-name">${ch.title}</span><button class="ch-del" title="삭제">✕</button>`;
+      li.querySelector('.ch-del').addEventListener('click', e=>{ e.stopPropagation(); removeChannel(ch.id); });
+      li.addEventListener('click', ()=>{ selectChannel(ch.id); if(isMobile) closeDrawer(); });
+      ul.appendChild(li);
+    });
+  };
+  makeItems(document.getElementById('channelList'), false);
+  const ulM = document.getElementById('channelListM'); if(ulM) makeItems(ulM, true);
+}
+document.getElementById('chFilterInput')?.addEventListener('input', e=>renderChannelList(e.target.value.trim()));
+document.getElementById('chFilterInputM')?.addEventListener('input', e=>renderChannelList(e.target.value.trim()));
 
-// ── 새로고침 ──
-function refreshFeed() { loadVideos(); }
+// 모바일 UI
+function openDrawer(){ document.getElementById('mobileDrawer').classList.add('open'); }
+function closeDrawer(){ document.getElementById('mobileDrawer').classList.remove('open'); }
+function openAddSheet(){ document.getElementById('mobileAddSheet').classList.add('open'); document.getElementById('chAddInputM').focus(); }
+function closeAddSheet(){ document.getElementById('mobileAddSheet').classList.remove('open'); document.getElementById('chAddResultM').innerHTML=''; document.getElementById('chAddInputM').value=''; }
+function openSearchSheet(){ document.getElementById('mobileSearchSheet').classList.add('open'); setTimeout(()=>document.getElementById('searchInputM').focus(), 300); }
+function closeSearchSheet(){ document.getElementById('mobileSearchSheet').classList.remove('open'); }
+function refreshFeed(){ loadVideos(); }
 
-// ── 영상 로드 ──
+document.getElementById('searchInputM')?.addEventListener('input', e=>{ searchQuery=e.target.value.trim(); renderFeed(); });
+document.getElementById('sortSelectM')?.addEventListener('change', e=>{ sortMode=e.target.value; renderFeed(); });
+
+// 영상 로드
 async function loadVideos() {
-  showSkeletons(); allVideos = []; nextPageTokenMap = {}; displayedCount = PAGE_SIZE;
-  const targets = selectedChannel === 'all' ? channels : channels.filter(c => c.id === selectedChannel);
+  showSkeletons(); allVideos=[]; nextPageTokenMap={}; displayedCount=PAGE_SIZE;
+  const targets = selectedChannel==='all' ? channels : channels.filter(c=>c.id===selectedChannel);
   if (!targets.length) { renderFeed(); return; }
 
   const playlistMap = {};
-  for (let i = 0; i < targets.length; i += 50) {
-    const chunk = targets.slice(i, i+50).map(c => c.id).join(',');
-    try {
-      const data = await gFetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${chunk}&maxResults=50`);
-      for (const item of (data.items||[])) playlistMap[item.id] = item.contentDetails?.relatedPlaylists?.uploads;
-    } catch(e) {}
+  for (let i=0; i<targets.length; i+=50) {
+    const chunk = targets.slice(i,i+50).map(c=>c.id).join(',');
+    try { const d=await gFetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${chunk}&maxResults=50`); for(const item of(d.items||[])) playlistMap[item.id]=item.contentDetails?.relatedPlaylists?.uploads; } catch(e){}
   }
-
-  const videoItems = [];
-  await Promise.all(targets.map(async ch => {
-    const pid = playlistMap[ch.id]; if (!pid) return;
+  const videoItems=[];
+  await Promise.all(targets.map(async ch=>{
+    const pid=playlistMap[ch.id]; if(!pid) return;
     try {
-      const data = await gFetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${pid}&maxResults=8`);
-      if (data.nextPageToken) nextPageTokenMap[ch.id] = { pid, token: data.nextPageToken, ch };
-      for (const item of (data.items||[])) {
-        const vid = item.snippet?.resourceId?.videoId;
-        if (vid) videoItems.push({ videoId:vid, channelId:ch.id, channelTitle:ch.title, channelThumb:ch.thumb });
-      }
-    } catch(e) {}
+      const d=await gFetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${pid}&maxResults=8`);
+      if(d.nextPageToken) nextPageTokenMap[ch.id]={pid,token:d.nextPageToken,ch};
+      for(const item of(d.items||[])){const vid=item.snippet?.resourceId?.videoId; if(vid) videoItems.push({videoId:vid,channelId:ch.id,channelTitle:ch.title,channelThumb:ch.thumb});}
+    } catch(e){}
   }));
-
-  const detailMap = {};
-  for (let i = 0; i < videoItems.length; i += 50) {
-    const chunk = videoItems.slice(i, i+50).map(v => v.videoId).join(',');
-    try {
-      const data = await gFetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${chunk}`);
-      for (const item of (data.items||[])) detailMap[item.id] = item;
-    } catch(e) {}
+  const detailMap={};
+  for(let i=0;i<videoItems.length;i+=50){
+    const chunk=videoItems.slice(i,i+50).map(v=>v.videoId).join(',');
+    try{const d=await gFetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${chunk}`); for(const item of(d.items||[])) detailMap[item.id]=item;}catch(e){}
   }
-
-  allVideos = videoItems.map(v => {
-    const d = detailMap[v.videoId]; if (!d) return null;
-    return { id:v.videoId, title:d.snippet.title,
-      thumb:d.snippet.thumbnails?.medium?.url||d.snippet.thumbnails?.default?.url||'',
-      publishedAt:d.snippet.publishedAt, viewCount:parseInt(d.statistics?.viewCount||0),
-      channelId:v.channelId, channelTitle:v.channelTitle, channelThumb:v.channelThumb,
-      duration:parseDuration(d.contentDetails?.duration||'') };
-  }).filter(Boolean);
+  allVideos=videoItems.map(v=>{const d=detailMap[v.videoId];if(!d)return null;return{id:v.videoId,title:d.snippet.title,thumb:d.snippet.thumbnails?.medium?.url||d.snippet.thumbnails?.default?.url||'',publishedAt:d.snippet.publishedAt,viewCount:parseInt(d.statistics?.viewCount||0),channelId:v.channelId,channelTitle:v.channelTitle,channelThumb:v.channelThumb,duration:parseDuration(d.contentDetails?.duration||'')};}).filter(Boolean);
   renderFeed();
 }
 
-// ── 더보기 ──
+// 더보기
 async function loadMore() {
-  const btn = document.getElementById('loadMoreBtn');
-  if (btn) { btn.textContent = '로딩 중...'; btn.disabled = true; }
-
-  // 다음 페이지 토큰이 있는 채널에서 추가 영상 로드
-  const entries = Object.values(nextPageTokenMap);
-  if (entries.length) {
-    const videoItems = [];
-    await Promise.all(entries.map(async ({ pid, token, ch }) => {
-      try {
-        const data = await gFetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${pid}&maxResults=8&pageToken=${token}`);
-        if (data.nextPageToken) nextPageTokenMap[ch.id] = { pid, token: data.nextPageToken, ch };
-        else delete nextPageTokenMap[ch.id];
-        for (const item of (data.items||[])) {
-          const vid = item.snippet?.resourceId?.videoId;
-          if (vid) videoItems.push({ videoId:vid, channelId:ch.id, channelTitle:ch.title, channelThumb:ch.thumb });
-        }
-      } catch(e) {}
+  const btn=document.getElementById('loadMoreBtn'); if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
+  const entries=Object.values(nextPageTokenMap);
+  if(entries.length){
+    const videoItems=[];
+    await Promise.all(entries.map(async({pid,token,ch})=>{
+      try{const d=await gFetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${pid}&maxResults=8&pageToken=${token}`);
+        d.nextPageToken?nextPageTokenMap[ch.id]={pid,token:d.nextPageToken,ch}:delete nextPageTokenMap[ch.id];
+        for(const item of(d.items||[])){const vid=item.snippet?.resourceId?.videoId;if(vid)videoItems.push({videoId:vid,channelId:ch.id,channelTitle:ch.title,channelThumb:ch.thumb});}
+      }catch(e){}
     }));
-
-    const detailMap = {};
-    for (let i = 0; i < videoItems.length; i += 50) {
-      const chunk = videoItems.slice(i, i+50).map(v => v.videoId).join(',');
-      try {
-        const data = await gFetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${chunk}`);
-        for (const item of (data.items||[])) detailMap[item.id] = item;
-      } catch(e) {}
-    }
-
-    const newVideos = videoItems.map(v => {
-      const d = detailMap[v.videoId]; if (!d) return null;
-      return { id:v.videoId, title:d.snippet.title,
-        thumb:d.snippet.thumbnails?.medium?.url||d.snippet.thumbnails?.default?.url||'',
-        publishedAt:d.snippet.publishedAt, viewCount:parseInt(d.statistics?.viewCount||0),
-        channelId:v.channelId, channelTitle:v.channelTitle, channelThumb:v.channelThumb,
-        duration:parseDuration(d.contentDetails?.duration||'') };
-    }).filter(Boolean);
-    allVideos = [...allVideos, ...newVideos];
+    const detailMap={};
+    for(let i=0;i<videoItems.length;i+=50){const chunk=videoItems.slice(i,i+50).map(v=>v.videoId).join(',');try{const d=await gFetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${chunk}`);for(const item of(d.items||[]))detailMap[item.id]=item;}catch(e){}}
+    const newVideos=videoItems.map(v=>{const d=detailMap[v.videoId];if(!d)return null;return{id:v.videoId,title:d.snippet.title,thumb:d.snippet.thumbnails?.medium?.url||d.snippet.thumbnails?.default?.url||'',publishedAt:d.snippet.publishedAt,viewCount:parseInt(d.statistics?.viewCount||0),channelId:v.channelId,channelTitle:v.channelTitle,channelThumb:v.channelThumb,duration:parseDuration(d.contentDetails?.duration||'')};}).filter(Boolean);
+    allVideos=[...allVideos,...newVideos];
   }
-
-  displayedCount += PAGE_SIZE;
-  renderFeed();
+  displayedCount+=PAGE_SIZE; renderFeed();
 }
 
-// ── 렌더 ──
+// 렌더
 function renderFeed() {
-  let videos = [...allVideos];
-  if (dateFilter !== 'all') { const c = Date.now()-dateFilter*86400000; videos = videos.filter(v => new Date(v.publishedAt) >= c); }
-  if (searchQuery) { const q = searchQuery.toLowerCase(); videos = videos.filter(v => v.title.toLowerCase().includes(q)||v.channelTitle.toLowerCase().includes(q)); }
-  videos.sort((a,b) => sortMode==='date' ? new Date(b.publishedAt)-new Date(a.publishedAt) : b.viewCount-a.viewCount);
-
-  const grid = document.getElementById('videoGrid');
-  const shown = videos.slice(0, displayedCount);
-  const hasMore = videos.length > displayedCount || Object.keys(nextPageTokenMap).length > 0;
-
-  document.getElementById('videoCount').textContent = `${videos.length}개`;
-  document.getElementById('feedTitle').textContent = selectedChannel==='all' ? '전체 피드' : (channels.find(c=>c.id===selectedChannel)?.title||'');
-
-  if (!shown.length) {
-    grid.innerHTML = `<div class="state-screen" style="grid-column:1/-1"><div class="icon">📭</div><p>영상이 없어요.<br>왼쪽에서 채널을 추가해보세요!</p></div>`; return;
-  }
-
-  grid.innerHTML = shown.map((v,i) => `
+  let videos=[...allVideos];
+  if(dateFilter!=='all'){const c=Date.now()-dateFilter*86400000;videos=videos.filter(v=>new Date(v.publishedAt)>=c);}
+  if(searchQuery){const q=searchQuery.toLowerCase();videos=videos.filter(v=>v.title.toLowerCase().includes(q)||v.channelTitle.toLowerCase().includes(q));}
+  videos.sort((a,b)=>sortMode==='date'?new Date(b.publishedAt)-new Date(a.publishedAt):b.viewCount-a.viewCount);
+  const shown=videos.slice(0,displayedCount);
+  const hasMore=videos.length>displayedCount||Object.keys(nextPageTokenMap).length>0;
+  const grid=document.getElementById('videoGrid');
+  document.getElementById('videoCount').textContent=`${videos.length}개`;
+  document.getElementById('feedTitle').textContent=selectedChannel==='all'?'전체 피드':(channels.find(c=>c.id===selectedChannel)?.title||'');
+  if(!shown.length){grid.innerHTML=`<div class="state-screen" style="grid-column:1/-1"><div class="icon">📭</div><p>영상이 없어요.<br>채널을 추가해보세요!</p></div>`;return;}
+  grid.innerHTML=shown.map((v,i)=>`
     <div class="video-card" style="animation-delay:${i*0.04}s" onclick="openVideo('${v.id}')">
-      <div class="thumb-wrap">
-        <img src="${v.thumb}" alt="" loading="lazy">
-        ${v.duration?`<span class="duration-badge">${v.duration}</span>`:''}
-      </div>
+      <div class="thumb-wrap"><img src="${v.thumb}" alt="" loading="lazy">${v.duration?`<span class="duration-badge">${v.duration}</span>`:''}</div>
       <div class="card-body">
         <div class="card-ch"><img src="${v.channelThumb}" alt="" onerror="this.style.display='none'"><span class="card-ch-name">${v.channelTitle}</span></div>
         <div class="card-title">${v.title}</div>
         <div class="card-meta"><span>👁 ${fmtViews(v.viewCount)}</span><span>🕐 ${relativeTime(v.publishedAt)}</span></div>
       </div>
     </div>`).join('');
-
-  // 더보기 버튼
-  if (hasMore) {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'grid-column:1/-1; display:flex; justify-content:center; padding:1rem 0;';
-    wrap.innerHTML = `<button id="loadMoreBtn" onclick="loadMore()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:inherit;font-size:0.88rem;padding:0.7rem 2.5rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">더보기</button>`;
-    grid.appendChild(wrap);
-  }
+  if(hasMore){const wrap=document.createElement('div');wrap.style.cssText='grid-column:1/-1;display:flex;justify-content:center;padding:1rem 0;';wrap.innerHTML=`<button id="loadMoreBtn" onclick="loadMore()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:inherit;font-size:0.88rem;padding:0.7rem 2.5rem;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">더보기</button>`;grid.appendChild(wrap);}
 }
 
-function selectChannel(id) {
-  selectedChannel = id;
-  document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('chAll').classList.toggle('active', id==='all');
-  if (id !== 'all') document.querySelector(`.channel-item[data-id="${id}"]`)?.classList.add('active');
+function selectChannel(id){
+  selectedChannel=id;
+  document.querySelectorAll('.channel-item').forEach(el=>el.classList.remove('active'));
+  const chAll=document.getElementById('chAll'); chAll.classList.toggle('active',id==='all');
+  const chAllM=document.getElementById('chAllM'); if(chAllM) chAllM.classList.toggle('active',id==='all');
+  if(id!=='all'){document.querySelector(`.channel-item[data-id="${id}"]`)?.classList.add('active');}
   loadVideos();
 }
-function setDateFilter(val, btn) {
-  dateFilter = val;
-  document.querySelectorAll('.date-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active'); renderFeed();
-}
-document.getElementById('searchInput').addEventListener('input', e => { searchQuery = e.target.value.trim(); renderFeed(); });
-document.getElementById('sortSelect').addEventListener('change', e => { sortMode = e.target.value; renderFeed(); });
+function setDateFilter(val,btn){dateFilter=val;document.querySelectorAll('.date-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFeed();}
+document.getElementById('searchInput')?.addEventListener('input',e=>{searchQuery=e.target.value.trim();renderFeed();});
+document.getElementById('sortSelect')?.addEventListener('change',e=>{sortMode=e.target.value;renderFeed();});
 
-// ── 모달 ──
-function openVideo(id) {
-  const v = allVideos.find(v => v.id === id); if (!v) return;
-  currentVideoId = id;
-  isVideoPlaying = true;
-  document.getElementById('modalIframe').src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
-  document.getElementById('modalTitle').textContent = v.title;
-  document.getElementById('modalChThumb').src = v.channelThumb;
-  document.getElementById('modalChName').textContent = v.channelTitle;
-  document.getElementById('modalViews').textContent = '👁 '+fmtViews(v.viewCount);
-  document.getElementById('modalDate').textContent = relativeTime(v.publishedAt);
+// 모달
+function openVideo(id){
+  const v=allVideos.find(v=>v.id===id);if(!v)return;
+  currentVideoId=id; isVideoPlaying=true;
+  document.getElementById('modalIframe').src=`https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+  document.getElementById('modalTitle').textContent=v.title;
+  document.getElementById('modalChThumb').src=v.channelThumb;
+  document.getElementById('modalChName').textContent=v.channelTitle;
+  document.getElementById('modalViews').textContent='👁 '+fmtViews(v.viewCount);
+  document.getElementById('modalDate').textContent=relativeTime(v.publishedAt);
   document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow='hidden';
 }
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-  document.getElementById('modalIframe').src = '';
-  document.body.style.overflow = '';
-  currentVideoId = null;
-  isVideoPlaying = false;
-}
-function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
-function openInYoutube() { if(currentVideoId) window.open(`https://www.youtube.com/watch?v=${currentVideoId}`,'_blank'); }
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.getElementById('modalIframe').src='';document.body.style.overflow='';currentVideoId=null;isVideoPlaying=false;}
+function handleOverlayClick(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+function openInYoutube(){if(currentVideoId)window.open(`https://www.youtube.com/watch?v=${currentVideoId}`,'_blank');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-function showSkeletons() {
-  document.getElementById('videoCount').textContent = '';
-  document.getElementById('videoGrid').innerHTML = Array(8).fill(`
-    <div class="skeleton"><div class="skel-thumb"></div><div class="skel-body">
-      <div class="skel-line short"></div><div class="skel-line"></div>
-      <div class="skel-line"></div><div class="skel-line short"></div>
-    </div></div>`).join('');
-}
+function showSkeletons(){document.getElementById('videoCount').textContent='';document.getElementById('videoGrid').innerHTML=Array(8).fill(`<div class="skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line short"></div><div class="skel-line"></div><div class="skel-line"></div><div class="skel-line short"></div></div></div>`).join('');}
 
-async function gFetch(url) {
-  const r = await fetch(url, { headers:{ Authorization:`Bearer ${accessToken}` } });
-  if (r.status === 401) {
-    // 토큰 만료 → 자동 갱신 시도
-    if (tokenClient) {
-      return new Promise((resolve, reject) => {
-        tokenClient.callback = async (resp) => {
-          if (resp.error) { reject(new Error('401')); return; }
-          accessToken = resp.access_token;
-          sessionStorage.setItem('yt_token', accessToken);
-          // 갱신된 토큰으로 재시도
-          const r2 = await fetch(url, { headers:{ Authorization:`Bearer ${accessToken}` } });
-          if (!r2.ok) { reject(new Error(r2.status)); return; }
-          resolve(r2.json());
-        };
-        tokenClient.requestAccessToken({ prompt: '' }); // 팝업 없이 갱신
-      });
-    }
-    sessionStorage.clear();
-    throw new Error('401');
+async function gFetch(url){
+  const r=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`}});
+  if(r.status===401){
+    if(tokenClient){return new Promise((resolve,reject)=>{tokenClient.callback=async(resp)=>{if(resp.error){reject(new Error('401'));return;}accessToken=resp.access_token;localStorage.setItem('yt_token',accessToken);const r2=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`}});if(!r2.ok){reject(new Error(r2.status));return;}resolve(r2.json());};tokenClient.requestAccessToken({prompt:''});});}
+    localStorage.clear(); throw new Error('401');
   }
-  if (!r.ok) throw new Error(r.status);
+  if(!r.ok)throw new Error(r.status);
   return r.json();
 }
-function parseDuration(iso) {
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return '';
-  const h=parseInt(m[1]||0),mn=parseInt(m[2]||0),s=parseInt(m[3]||0);
-  return h?`${h}:${String(mn).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${mn}:${String(s).padStart(2,'0')}`;
-}
-function fmtViews(n) {
-  if(n>=1e8) return (n/1e8).toFixed(1)+'억';
-  if(n>=1e4) return Math.floor(n/1e4)+'만';
-  if(n>=1e3) return (n/1e3).toFixed(1)+'천';
-  return String(n);
-}
-function relativeTime(iso) {
-  const d=(Date.now()-new Date(iso))/1000;
-  if(d<3600) return Math.floor(d/60)+'분 전';
-  if(d<86400) return Math.floor(d/3600)+'시간 전';
-  if(d<2592000) return Math.floor(d/86400)+'일 전';
-  if(d<31536000) return Math.floor(d/2592000)+'달 전';
-  return Math.floor(d/31536000)+'년 전';
-}
+function parseDuration(iso){const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);if(!m)return'';const h=parseInt(m[1]||0),mn=parseInt(m[2]||0),s=parseInt(m[3]||0);return h?`${h}:${String(mn).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${mn}:${String(s).padStart(2,'0')}`;}
+function fmtViews(n){if(n>=1e8)return(n/1e8).toFixed(1)+'억';if(n>=1e4)return Math.floor(n/1e4)+'만';if(n>=1e3)return(n/1e3).toFixed(1)+'천';return String(n);}
+function relativeTime(iso){const d=(Date.now()-new Date(iso))/1000;if(d<3600)return Math.floor(d/60)+'분 전';if(d<86400)return Math.floor(d/3600)+'시간 전';if(d<2592000)return Math.floor(d/86400)+'일 전';if(d<31536000)return Math.floor(d/2592000)+'달 전';return Math.floor(d/31536000)+'년 전';}
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 </script>
 </body>
 </html>

@@ -1,0 +1,22 @@
+{
+  "name": "YouTube Auto Feed",
+  "short_name": "YT Feed",
+  "description": "내가 선택한 채널의 최신 영상만 모아보는 개인 유튜브 피드",
+  "start_url": "/youtube-feed.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#ff0033",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230a0a0a' rx='24'/><rect x='32' y='56' width='128' height='80' rx='12' fill='%23ff0033'/><polygon points='80,76 80,116 120,96' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%230a0a0a' rx='64'/><rect x='80' y='144' width='352' height='224' rx='32' fill='%23ff0033'/><polygon points='208,192 208,320 336,256' fill='white'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
