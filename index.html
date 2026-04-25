@@ -553,19 +553,21 @@ function renderChannelList(filter='') {
       li.dataset.id = ch.id;
       li.innerHTML = `<img src="${ch.thumb}" alt="" onerror="this.style.display='none'"><span class="channel-name">${ch.title}</span><button class="ch-del" title="삭제">✕</button>`;
       const delBtn = li.querySelector('.ch-del');
+      delBtn.addEventListener('touchend', e=>{ e.stopPropagation(); e.preventDefault(); removeChannel(ch.id); });
       delBtn.addEventListener('click', e=>{ e.stopPropagation(); removeChannel(ch.id); });
       if (isMobile) {
-        // 모바일: touchend + click 둘 다 처리 (데스크탑 창 좁힐 때도 대응)
         let touched = false;
         let touchStartX = 0;
         li.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; touched = true; }, { passive: true });
         li.addEventListener('touchend', e=>{
+          if (e.target.classList.contains('ch-del')) return; // ✕ 버튼이면 스킵
           const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
           if (dx < 10) { selectChannel(ch.id); closeDrawer(); }
           setTimeout(()=>{ touched = false; }, 300);
         });
         li.addEventListener('click', e=>{
-          if (touched) return; // touchend가 이미 처리했으면 스킵
+          if (e.target.classList.contains('ch-del')) return;
+          if (touched) return;
           selectChannel(ch.id); closeDrawer();
         });
       } else {
